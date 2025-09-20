@@ -10,8 +10,28 @@ import {
   DollarSign,
   ShoppingCart,
   FileText,
-  Plus
+  Plus,
+  BarChart3,
+  AlertTriangle,
+  Calendar,
+  Target
 } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Area,
+  AreaChart
+} from 'recharts';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -81,6 +101,30 @@ const Dashboard: React.FC = () => {
     }
   ];
 
+  // Advanced Analytics Data
+  const monthlyData = [
+    { month: 'Jan', sales: 45000, purchases: 32000, profit: 13000 },
+    { month: 'Feb', sales: 52000, purchases: 38000, profit: 14000 },
+    { month: 'Mar', sales: 48000, purchases: 35000, profit: 13000 },
+    { month: 'Apr', sales: 61000, purchases: 42000, profit: 19000 },
+    { month: 'May', sales: 55000, purchases: 40000, profit: 15000 },
+    { month: 'Jun', sales: 67000, purchases: 45000, profit: 22000 }
+  ];
+
+  const categoryData = [
+    { name: 'Furniture', value: 45, color: '#8884d8' },
+    { name: 'Accessories', value: 25, color: '#82ca9d' },
+    { name: 'Decor', value: 20, color: '#ffc658' },
+    { name: 'Others', value: 10, color: '#ff7c7c' }
+  ];
+
+  const kpiData = [
+    { name: 'Revenue Growth', value: 15.3, target: 20, color: 'text-green-600' },
+    { name: 'Profit Margin', value: 28.5, target: 25, color: 'text-blue-600' },
+    { name: 'Customer Retention', value: 92.1, target: 90, color: 'text-purple-600' },
+    { name: 'Inventory Turnover', value: 6.2, target: 8, color: 'text-orange-600' }
+  ];
+
   const recentTransactions = [
     ...purchaseOrders.slice(-3).map(po => ({
       id: po.id,
@@ -99,6 +143,13 @@ const Dashboard: React.FC = () => {
       status: so.status
     }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+
+  // Notifications and Alerts
+  const alerts = [
+    { id: 1, type: 'warning', message: '3 products are low in stock', action: 'View Stock Report' },
+    { id: 2, type: 'info', message: '5 invoices are due this week', action: 'View Invoices' },
+    { id: 3, type: 'success', message: 'Monthly target achieved!', action: 'View Reports' }
+  ];
 
   return (
     <div className="space-y-6">
@@ -148,7 +199,117 @@ const Dashboard: React.FC = () => {
         ))}
       </div>
 
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        {kpiData.map((kpi) => (
+          <div key={kpi.name} className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500">{kpi.name}</p>
+                <p className={`text-2xl font-semibold ${kpi.color}`}>
+                  {kpi.value}%
+                </p>
+                <p className="text-xs text-gray-400">Target: {kpi.target}%</p>
+              </div>
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Target className="h-6 w-6 text-gray-600" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full ${
+                    kpi.value >= kpi.target ? 'bg-green-500' : 'bg-yellow-500'
+                  }`}
+                  style={{ width: `${Math.min((kpi.value / kpi.target) * 100, 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Alerts Section */}
+      {alerts.length > 0 && (
+        <div className="bg-white shadow rounded-lg p-6 mb-6">
+          <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+            <AlertTriangle className="h-5 w-5 text-yellow-500 mr-2" />
+            Alerts & Notifications
+          </h3>
+          <div className="space-y-3">
+            {alerts.map((alert) => (
+              <div key={alert.id} className={`p-3 rounded-lg border-l-4 ${
+                alert.type === 'warning' ? 'bg-yellow-50 border-yellow-400' :
+                alert.type === 'info' ? 'bg-blue-50 border-blue-400' :
+                'bg-green-50 border-green-400'
+              }`}>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-700">{alert.message}</p>
+                  <button className="text-xs text-primary-600 hover:text-primary-800 font-medium">
+                    {alert.action}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Trends Chart */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4 flex items-center">
+              <BarChart3 className="h-5 w-5 text-gray-600 mr-2" />
+              Monthly Performance
+            </h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`₹${value.toLocaleString()}`, '']} />
+                  <Area type="monotone" dataKey="sales" stackId="1" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="purchases" stackId="1" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="profit" stackId="1" stroke="#ffc658" fill="#ffc658" fillOpacity={0.6} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Category Distribution */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:p-6">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+              Sales by Category
+            </h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         {/* Financial Summary */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">

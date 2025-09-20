@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
+import GlobalSearch from '../Common/GlobalSearch';
+import NotificationSystem from '../Common/NotificationSystem';
 import {
-  Building2,
   Menu,
   X,
   Home,
@@ -10,14 +11,16 @@ import {
   Package,
   Receipt,
   FileText,
-  ShoppingCart,
-  CreditCard,
-  TrendingUp,
   BarChart3,
   Settings,
   LogOut,
+  Building2,
+  ShoppingCart,
+  DollarSign,
+  Calculator,
   ChevronDown
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,14 +42,14 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     },
     {
       name: 'Transactions',
-      icon: CreditCard,
+      icon: DollarSign,
       roles: ['Admin', 'Accountant'],
       children: [
         { name: 'Purchase Orders', href: '/transactions/purchase-orders', icon: ShoppingCart },
         { name: 'Vendor Bills', href: '/transactions/vendor-bills', icon: FileText },
-        { name: 'Sales Orders', href: '/transactions/sales-orders', icon: TrendingUp },
+        { name: 'Sales Orders', href: '/transactions/sales-orders', icon: Calculator },
         { name: 'Customer Invoices', href: '/transactions/customer-invoices', icon: Receipt },
-        { name: 'Payments', href: '/transactions/payments', icon: CreditCard },
+        { name: 'Payments', href: '/transactions/payments', icon: DollarSign },
       ]
     },
     {
@@ -55,7 +58,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       roles: ['Admin', 'Accountant'],
       children: [
         { name: 'Balance Sheet', href: '/reports/balance-sheet', icon: BarChart3 },
-        { name: 'Profit & Loss', href: '/reports/profit-loss', icon: TrendingUp },
+        { name: 'Profit & Loss', href: '/reports/profit-loss', icon: Calculator },
         { name: 'Stock Report', href: '/reports/stock', icon: Package },
         { name: 'Partner Ledger', href: '/reports/partner-ledger', icon: Users },
       ]
@@ -118,6 +121,10 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   };
 
+  const handleLogout = () => {
+    logout();
+  };
+
   return (
     <div className="h-screen flex overflow-hidden bg-gray-100">
       {/* Mobile sidebar */}
@@ -156,28 +163,25 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <Building2 className="h-8 w-8 text-primary-600" />
                 <span className="ml-2 text-xl font-bold text-gray-900">Shiv Accounts</span>
               </div>
-              <nav className="mt-5 flex-1 px-2 space-y-1">
+              <nav className="mt-5 px-2 space-y-1">
                 {filteredNavigation.map((item) => (
                   <NavItem key={item.name} item={item} />
                 ))}
               </nav>
             </div>
             <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary-600">
                       {user?.name?.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{user?.role}</p>
+                  <span className="text-sm font-medium text-gray-700">{user?.name}</span>
                 </div>
                 <button
-                  onClick={logout}
-                  className="ml-auto p-1 rounded-md text-gray-400 hover:text-gray-500"
+                  onClick={handleLogout}
+                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 >
                   <LogOut className="h-5 w-5" />
                 </button>
@@ -189,15 +193,45 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       {/* Main content */}
       <div className="flex flex-col w-0 flex-1 overflow-hidden">
-        <div className="md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3">
+        {/* Top header with search */}
+        <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow">
           <button
             type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+            className="px-4 border-r border-gray-200 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 md:hidden"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-6 w-6" />
           </button>
+          <div className="flex-1 px-4 flex justify-between">
+            <div className="flex-1 flex">
+              <div className="w-full flex md:ml-0">
+                <div className="relative w-full max-w-lg">
+                  <GlobalSearch />
+                </div>
+              </div>
+            </div>
+            <div className="ml-4 flex items-center md:ml-6">
+              <div className="flex items-center space-x-4">
+                <NotificationSystem />
+                <div className="flex items-center space-x-2">
+                  <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary-600">
+                      {user?.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">{user?.name}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  <LogOut className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+        
         <main className="flex-1 relative overflow-y-auto focus:outline-none">
           <div className="py-6">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">

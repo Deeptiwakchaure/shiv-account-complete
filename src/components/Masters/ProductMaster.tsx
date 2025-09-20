@@ -3,9 +3,15 @@ import { useData } from '../../context/DataContext';
 import { Product } from '../../types';
 import { Plus, Edit, Trash2, Search, Package } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useEffect } from 'react';
+import { getProductsApi, createProductApi, updateProductApi, deleteProductApi } from '../../lib/api';
+import { useLocation } from 'react-router-dom';
 
 const ProductMaster: React.FC = () => {
-  const { products, addProduct, updateProduct, deleteProduct } = useData();
+  const { products: ctxProducts, addProduct, updateProduct, deleteProduct } = useData();
+  const location = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>(ctxProducts);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,6 +21,7 @@ const ProductMaster: React.FC = () => {
     name: '',
     type: 'Goods' as 'Goods' | 'Service',
     category: '',
+    unit: 'PCS' as 'PCS' | 'KG' | 'LTR' | 'MTR' | 'SFT' | 'CBM' | 'BOX' | 'SET' | 'PAIR' | 'DOZEN' | 'HOUR' | 'DAY' | 'MONTH' | 'YEAR',
     salesPrice: 0,
     purchasePrice: 0,
     salesTaxPercent: 0,
@@ -31,6 +38,49 @@ const ProductMaster: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
+  // Load products from backend
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await getProductsApi({ limit: 100 });
+        if (resp?.data?.products) {
+          const mapped = resp.data.products.map((p: any) => ({
+            id: p._id,
+            name: p.name,
+            type: p.type,
+            category: p.category,
+            hsnCode: p.hsnCode,
+            salesPrice: p.salesPrice,
+            purchasePrice: p.purchasePrice,
+            salesTaxPercent: p.salesTaxPercent || 0,
+            purchaseTaxPercent: p.purchaseTaxPercent || 0,
+            stock: p.currentStock || 0,
+            createdAt: new Date(p.createdAt),
+            updatedAt: new Date(p.updatedAt)
+          })) as Product[];
+          setProducts(mapped);
+        }
+      } catch (err: any) {
+        setProducts(ctxProducts);
+        toast.error(err?.message || 'Failed to load products. Using local data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Open modal if ?open=1
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('open') === '1') {
+      handleOpenModal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
   const handleOpenModal = (product?: Product) => {
     if (product) {
       setEditingProduct(product);
@@ -38,6 +88,7 @@ const ProductMaster: React.FC = () => {
         name: product.name,
         type: product.type,
         category: product.category,
+        unit: 'PCS',
         salesPrice: product.salesPrice,
         purchasePrice: product.purchasePrice,
         salesTaxPercent: product.salesTaxPercent,
@@ -51,6 +102,7 @@ const ProductMaster: React.FC = () => {
         name: '',
         type: 'Goods',
         category: '',
+        unit: 'PCS',
         salesPrice: 0,
         purchasePrice: 0,
         salesTaxPercent: 0,
@@ -69,6 +121,7 @@ const ProductMaster: React.FC = () => {
       name: '',
       type: 'Goods',
       category: '',
+      unit: 'PCS',
       salesPrice: 0,
       purchasePrice: 0,
       salesTaxPercent: 0,
@@ -78,24 +131,86 @@ const ProductMaster: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingProduct) {
-      updateProduct(editingProduct.id, formData);
-      toast.success('Product updated successfully!');
-    } else {
-      addProduct(formData);
-      toast.success('Product added successfully!');
+    try {
+      setLoading(true);
+      if (editingProduct) {
+        try {
+          await updateProductApi(editingProduct.id, {
+            name: formData.name,
+            type: formData.type,
+            category: formData.category,
+            hsnCode: formData.hsnCode,
+            unit: formData.unit,
+            salesPrice: formData.salesPrice,
+            purchasePrice: formData.purchasePrice,
+            salesTaxPercent: formData.salesTaxPercent,
+            purchaseTaxPercent: formData.purchaseTaxPercent,
+          });
+        } catch {
+          updateProduct(editingProduct.id, formData);
+        }
+        // Update local list
+        setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...formData } as Product : p));
+        toast.success('Product updated successfully!');
+      } else {
+        try {
+          const resp = await createProductApi({
+            name: formData.name,
+            type: formData.type,
+            category: formData.category,
+            hsnCode: formData.hsnCode,
+            unit: formData.unit,
+            salesPrice: formData.salesPrice,
+            purchasePrice: formData.purchasePrice,
+            salesTaxPercent: formData.salesTaxPercent,
+            purchaseTaxPercent: formData.purchaseTaxPercent,
+            openingStock: formData.stock,
+          });
+          const p = (resp as any).data.product;
+          setProducts(prev => [
+            ...prev,
+            {
+              id: p._id,
+              name: p.name,
+              type: p.type,
+              category: p.category,
+              hsnCode: p.hsnCode,
+              salesPrice: p.salesPrice,
+              purchasePrice: p.purchasePrice,
+              salesTaxPercent: p.salesTaxPercent || 0,
+              purchaseTaxPercent: p.purchaseTaxPercent || 0,
+              stock: p.currentStock || 0,
+              createdAt: new Date(p.createdAt),
+              updatedAt: new Date(p.updatedAt)
+            } as Product
+          ]);
+        } catch {
+          addProduct(formData);
+          setProducts(prev => [...prev, { ...formData, id: Math.random().toString(36), createdAt: new Date(), updatedAt: new Date() } as Product]);
+        }
+        toast.success('Product added successfully!');
+      }
+    } finally {
+      setLoading(false);
+      handleCloseModal();
     }
-    
-    handleCloseModal();
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      deleteProduct(id);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      setLoading(true);
+      try {
+        await deleteProductApi(id);
+      } catch {
+        deleteProduct(id);
+      }
+      setProducts(prev => prev.filter(p => p.id !== id));
       toast.success('Product deleted successfully!');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -165,7 +280,7 @@ const ProductMaster: React.FC = () => {
               </tr>
             </thead>
             <tbody className="table-body">
-              {filteredProducts.map((product) => (
+              {(loading ? [] : filteredProducts).map((product) => (
                 <tr key={product.id} className="table-row">
                   <td className="table-cell">
                     <div className="flex items-center">
@@ -215,6 +330,19 @@ const ProductMaster: React.FC = () => {
                   </td>
                 </tr>
               ))}
+              {loading && (
+                <tr>
+                  <td className="table-cell text-center py-8" colSpan={8}>
+                    <div className="inline-flex items-center gap-2 text-gray-600">
+                      <svg className="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      Loading products...
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -249,6 +377,21 @@ const ProductMaster: React.FC = () => {
                     >
                       <option value="Goods">Goods</option>
                       <option value="Service">Service</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Unit *</label>
+                    <select
+                      value={formData.unit}
+                      onChange={(e) => setFormData({ ...formData, unit: e.target.value as any })}
+                      className="input mt-1"
+                    >
+                      {['PCS','KG','LTR','MTR','SFT','CBM','BOX','SET','PAIR','DOZEN','HOUR','DAY','MONTH','YEAR'].map(u => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

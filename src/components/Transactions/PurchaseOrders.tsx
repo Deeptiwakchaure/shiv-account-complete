@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { PurchaseOrder, Contact, Product } from '../../types';
 import { Plus, Edit, Trash2, Search, ShoppingCart, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getPOsApi, createPOApi } from '../../lib/api';
+import { useLocation } from 'react-router-dom';
 
 const PurchaseOrders: React.FC = () => {
-  const { 
-    purchaseOrders, 
-    addPurchaseOrder, 
-    contacts, 
-    products, 
-    generateId 
-  } = useData();
+  const { contacts, products, generateId } = useData();
+  const location = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPO, setEditingPO] = useState<PurchaseOrder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,31 +26,60 @@ const PurchaseOrders: React.FC = () => {
     }>,
     orderDate: new Date().toISOString().split('T')[0],
     expectedDate: '',
+    deliveryAddress: 'Main Warehouse',
     notes: ''
   });
 
   const vendors = contacts.filter(c => c.type === 'Vendor' || c.type === 'Both');
 
-  const filteredPOs = purchaseOrders.filter(po => {
-    const matchesSearch = po.vendor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         po.id.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredPOs = purchaseOrders.filter((po) => {
+    const matchesSearch = (po.vendorName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (po.orderNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'All' || po.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
-  const handleOpenModal = (po?: PurchaseOrder) => {
+  // Load POs from backend
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await getPOsApi({ limit: 50 });
+        if (resp?.data) {
+          setPurchaseOrders(resp.data);
+        }
+      } catch (err: any) {
+        toast.error(err?.message || 'Failed to load purchase orders');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Open modal if ?open=1 in query string
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('open') === '1') {
+      handleOpenModal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
+
+  const handleOpenModal = (po?: any) => {
     if (po) {
       setEditingPO(po);
       setFormData({
-        vendorId: po.vendorId,
-        items: po.items.map(item => ({
-          productId: item.productId,
+        vendorId: (po.vendor && po.vendor._id) || '',
+        items: (po.items || []).map((item: any) => ({
+          productId: item.product?._id || '',
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          taxPercent: item.taxPercent
+          taxPercent: item.taxPercent || 0,
         })),
-        orderDate: po.orderDate.toISOString().split('T')[0],
-        expectedDate: po.expectedDate?.toISOString().split('T')[0] || '',
+        orderDate: po.orderDate ? new Date(po.orderDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        expectedDate: po.expectedDeliveryDate ? new Date(po.expectedDeliveryDate).toISOString().split('T')[0] : '',
+        deliveryAddress: po.deliveryAddress || 'Main Warehouse',
         notes: po.notes || ''
       });
     } else {
@@ -61,6 +89,7 @@ const PurchaseOrders: React.FC = () => {
         items: [],
         orderDate: new Date().toISOString().split('T')[0],
         expectedDate: '',
+        deliveryAddress: 'Main Warehouse',
         notes: ''
       });
     }
@@ -75,6 +104,7 @@ const PurchaseOrders: React.FC = () => {
       items: [],
       orderDate: new Date().toISOString().split('T')[0],
       expectedDate: '',
+      deliveryAddress: 'Main Warehouse',
       notes: ''
     });
   };
@@ -120,7 +150,7 @@ const PurchaseOrders: React.FC = () => {
     };
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.vendorId || formData.items.length === 0) {
@@ -134,38 +164,32 @@ const PurchaseOrders: React.FC = () => {
       return;
     }
 
-    const totals = calculateTotals();
-    const poData = {
-      vendorId: formData.vendorId,
-      vendor,
-      items: formData.items.map(item => {
-        const product = products.find(p => p.id === item.productId);
-        const itemTotal = item.quantity * item.unitPrice;
-        const itemTax = (itemTotal * item.taxPercent) / 100;
-        
-        return {
-          id: generateId(),
-          productId: item.productId,
-          product: product!,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          taxPercent: item.taxPercent,
-          taxAmount: itemTax,
-          totalAmount: itemTotal + itemTax
-        };
-      }),
-      totalAmount: totals.totalAmount,
-      taxAmount: totals.taxAmount,
-      grandTotal: totals.grandTotal,
-      status: 'Draft' as const,
-      orderDate: new Date(formData.orderDate),
-      expectedDate: formData.expectedDate ? new Date(formData.expectedDate) : undefined,
-      notes: formData.notes
-    };
-
-    addPurchaseOrder(poData);
-    toast.success('Purchase Order created successfully!');
-    handleCloseModal();
+    try {
+      setLoading(true);
+      // Build backend payload
+      const payload = {
+        vendor: formData.vendorId,
+        expectedDeliveryDate: formData.expectedDate || new Date().toISOString(),
+        deliveryAddress: formData.deliveryAddress || 'Main Warehouse',
+        paymentTerms: 'Net 30',
+        notes: formData.notes,
+        items: formData.items.map((it) => ({
+          product: it.productId,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          taxPercent: it.taxPercent,
+        })),
+      };
+      const resp = await createPOApi(payload);
+      const created = (resp as any).data;
+      setPurchaseOrders((prev) => [created, ...prev]);
+      toast.success('Purchase Order created successfully!');
+      handleCloseModal();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to create purchase order');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -245,30 +269,32 @@ const PurchaseOrders: React.FC = () => {
               </tr>
             </thead>
             <tbody className="table-body">
-              {filteredPOs.map((po) => (
+              {(loading ? [] : filteredPOs).map((po) => (
                 <tr key={po.id} className="table-row">
                   <td className="table-cell">
                     <div className="text-sm font-medium text-gray-900">
-                      PO-{po.id.slice(-6)}
+                      {po.orderNumber || `PO-${(po._id || '').slice(-6)}`}
                     </div>
                   </td>
                   <td className="table-cell">
-                    <div className="text-sm text-gray-900">{po.vendor.name}</div>
-                    <div className="text-sm text-gray-500">{po.vendor.email}</div>
+                    <div className="text-sm text-gray-900">{po.vendorName || po.vendor?.name}</div>
+                    <div className="text-sm text-gray-500">{po.vendorEmail || po.vendor?.email}</div>
                   </td>
                   <td className="table-cell text-sm text-gray-900">
-                    {po.orderDate.toLocaleDateString()}
+                    {po.orderDate ? new Date(po.orderDate).toLocaleDateString() : '-'}
                   </td>
                   <td className="table-cell text-sm text-gray-900">
-                    {po.expectedDate ? po.expectedDate.toLocaleDateString() : '-'}
+                    {po.expectedDeliveryDate ? new Date(po.expectedDeliveryDate).toLocaleDateString() : '-'}
                   </td>
                   <td className="table-cell">
                     <div className="text-sm font-medium text-gray-900">
-                      ₹{po.grandTotal.toLocaleString()}
+                      ₹{(po.totalAmount || 0).toLocaleString()}
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {po.items.length} items
-                    </div>
+                    {po.items && (
+                      <div className="text-sm text-gray-500">
+                        {po.items.length} items
+                      </div>
+                    )}
                   </td>
                   <td className="table-cell">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(po.status)}`}>
@@ -281,18 +307,25 @@ const PurchaseOrders: React.FC = () => {
                         onClick={() => handleOpenModal(po)}
                         className="text-primary-600 hover:text-primary-900"
                       >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenModal(po)}
-                        className="text-primary-600 hover:text-primary-900"
-                      >
                         <Edit className="h-4 w-4" />
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
+              {loading && (
+                <tr>
+                  <td className="table-cell text-center py-8" colSpan={7}>
+                    <div className="inline-flex items-center gap-2 text-gray-600">
+                      <svg className="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      Loading purchase orders...
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -344,6 +377,16 @@ const PurchaseOrders: React.FC = () => {
                       value={formData.expectedDate}
                       onChange={(e) => setFormData({ ...formData, expectedDate: e.target.value })}
                       className="input mt-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Delivery Address</label>
+                    <input
+                      type="text"
+                      value={formData.deliveryAddress}
+                      onChange={(e) => setFormData({ ...formData, deliveryAddress: e.target.value })}
+                      className="input mt-1"
+                      placeholder="Enter delivery address"
                     />
                   </div>
                   <div>

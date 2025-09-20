@@ -18,6 +18,9 @@ import BalanceSheet from './components/Reports/BalanceSheet';
 import ProfitLoss from './components/Reports/ProfitLoss';
 import StockReport from './components/Reports/StockReport';
 import PartnerLedger from './components/Reports/PartnerLedger';
+import LoadingOverlay from './components/Common/LoadingOverlay';
+import { useEffect, useState } from 'react';
+import Payments from './components/Transactions/Payments';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ 
   children, 
@@ -82,6 +85,11 @@ const AppRoutes: React.FC = () => {
             <PurchaseOrders />
           </ProtectedRoute>
         } />
+        <Route path="/transactions/payments" element={
+          <ProtectedRoute roles={['Admin', 'Accountant']}>
+            <Payments />
+          </ProtectedRoute>
+        } />
         <Route path="/transactions/vendor-bills" element={
           <ProtectedRoute roles={['Admin', 'Accountant']}>
             <VendorBills />
@@ -127,11 +135,25 @@ const AppRoutes: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  const [loadingCount, setLoadingCount] = useState(0);
+
+  useEffect(() => {
+    const onStart = () => setLoadingCount((c) => c + 1);
+    const onEnd = () => setLoadingCount((c) => Math.max(0, c - 1));
+    window.addEventListener('api:request-start' as any, onStart);
+    window.addEventListener('api:request-end' as any, onEnd);
+    return () => {
+      window.removeEventListener('api:request-start' as any, onStart);
+      window.removeEventListener('api:request-end' as any, onEnd);
+    };
+  }, []);
+
   return (
     <DataProvider>
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-gray-50">
+            <LoadingOverlay visible={loadingCount > 0} />
             <AppRoutes />
             <Toaster 
               position="top-right"

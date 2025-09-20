@@ -3,9 +3,15 @@ import { useData } from '../../context/DataContext';
 import { Contact } from '../../types';
 import { Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useEffect } from 'react';
+import { getContactsApi, createContactApi, updateContactApi, deleteContactApi } from '../../lib/api';
+import { useLocation } from 'react-router-dom';
 
 const ContactMaster: React.FC = () => {
-  const { contacts, addContact, updateContact, deleteContact } = useData();
+  const { contacts: ctxContacts, addContact, updateContact, deleteContact } = useData();
+  const location = useLocation();
+  const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState<Contact[]>(ctxContacts);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +37,50 @@ const ContactMaster: React.FC = () => {
     const matchesFilter = filterType === 'All' || contact.type === filterType;
     return matchesSearch && matchesFilter;
   });
+
+  // Load contacts
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await getContactsApi({ limit: 100 });
+        if (resp?.data?.contacts) {
+          const mapped = resp.data.contacts.map((c: any) => ({
+            id: c._id,
+            name: c.name,
+            type: c.type,
+            email: c.email,
+            mobile: c.mobile,
+            address: c.address || '',
+            city: c.city || '',
+            state: c.state || '',
+            pincode: c.pincode || '',
+            profileImage: c.profileImage || '',
+            balance: c.currentBalance ?? 0,
+            createdAt: new Date(c.createdAt),
+            updatedAt: new Date(c.updatedAt)
+          })) as Contact[];
+          setContacts(mapped);
+        }
+      } catch (err: any) {
+        setContacts(ctxContacts);
+        toast.error(err?.message || 'Failed to load contacts. Using local data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Open modal if ?open=1 in query string
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('open') === '1') {
+      handleOpenModal();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const handleOpenModal = (contact?: Contact) => {
     if (contact) {
@@ -82,24 +132,83 @@ const ContactMaster: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingContact) {
-      updateContact(editingContact.id, formData);
-      toast.success('Contact updated successfully!');
-    } else {
-      addContact(formData);
-      toast.success('Contact added successfully!');
+    try {
+      setLoading(true);
+      if (editingContact) {
+        try {
+          await updateContactApi(editingContact.id, {
+            name: formData.name,
+            type: formData.type,
+            email: formData.email,
+            mobile: formData.mobile,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+          });
+        } catch {
+          updateContact(editingContact.id, formData);
+        }
+        setContacts(prev => prev.map(c => c.id === editingContact.id ? { ...c, ...formData } as Contact : c));
+        toast.success('Contact updated successfully!');
+      } else {
+        try {
+          const resp = await createContactApi({
+            name: formData.name,
+            type: formData.type,
+            email: formData.email,
+            mobile: formData.mobile,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode,
+          });
+          const c = (resp as any).data;
+          setContacts(prev => [
+            ...prev,
+            {
+              id: c._id,
+              name: c.name,
+              type: c.type,
+              email: c.email,
+              mobile: c.mobile,
+              address: c.address || '',
+              city: c.city || '',
+              state: c.state || '',
+              pincode: c.pincode || '',
+              profileImage: c.profileImage || '',
+              balance: c.currentBalance ?? 0,
+              createdAt: new Date(c.createdAt),
+              updatedAt: new Date(c.updatedAt)
+            } as Contact
+          ]);
+        } catch {
+          addContact(formData);
+          setContacts(prev => [...prev, { ...formData, id: Math.random().toString(36), createdAt: new Date(), updatedAt: new Date() } as Contact]);
+        }
+        toast.success('Contact added successfully!');
+      }
+    } finally {
+      setLoading(false);
+      handleCloseModal();
     }
-    
-    handleCloseModal();
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this contact?')) {
-      deleteContact(id);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this contact?')) return;
+    try {
+      setLoading(true);
+      try {
+        await deleteContactApi(id);
+      } catch {
+        deleteContact(id);
+      }
+      setContacts(prev => prev.filter(c => c.id !== id));
       toast.success('Contact deleted successfully!');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -169,7 +278,7 @@ const ContactMaster: React.FC = () => {
               </tr>
             </thead>
             <tbody className="table-body">
-              {filteredContacts.map((contact) => (
+              {(loading ? [] : filteredContacts).map((contact) => (
                 <tr key={contact.id} className="table-row">
                   <td className="table-cell">
                     <div className="flex items-center">
@@ -221,6 +330,29 @@ const ContactMaster: React.FC = () => {
                   </td>
                 </tr>
               ))}
+              {(!loading && filteredContacts.length === 0) && (
+                <tr>
+                  <td className="table-cell text-center py-12" colSpan={7}>
+                    <div className="flex flex-col items-center gap-2 text-gray-500">
+                      <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                      <div className="text-sm">No contacts found. Try adjusting your filters or add a new contact.</div>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {loading && (
+                <tr>
+                  <td className="table-cell text-center py-8" colSpan={7}>
+                    <div className="inline-flex items-center gap-2 text-gray-600">
+                      <svg className="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      Loading contacts...
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

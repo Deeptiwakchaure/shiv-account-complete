@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '../types';
 import { useData } from './DataContext';
+import { loginApi } from '../lib/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -17,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check for stored user session
+    // Restore session from localStorage (token + user)
     const storedUser = localStorage.getItem('shiv-accounts-user');
     if (storedUser) {
       try {
@@ -25,26 +26,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(userData);
       } catch (error) {
         localStorage.removeItem('shiv-accounts-user');
+        localStorage.removeItem('shiv-accounts-token');
       }
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const foundUser = users.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword as User);
-      localStorage.setItem('shiv-accounts-user', JSON.stringify(userWithoutPassword));
-      return true;
+    try {
+      // Prefer backend auth
+      const { user: backendUser, token } = await loginApi(email, password);
+      if (token && backendUser) {
+        localStorage.setItem('shiv-accounts-token', token);
+        localStorage.setItem('shiv-accounts-user', JSON.stringify(backendUser));
+        setUser(backendUser as User);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      // Fallback to mock users only if backend unavailable
+      const foundUser = users.find(u => u.email === email && u.password === password);
+      if (foundUser) {
+        const { password: _pw, ...userWithoutPassword } = foundUser as any;
+        setUser(userWithoutPassword as User);
+        localStorage.setItem('shiv-accounts-user', JSON.stringify(userWithoutPassword));
+        // No token in mock fallback
+        return true;
+      }
+      return false;
     }
-    
-    return false;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('shiv-accounts-user');
+    localStorage.removeItem('shiv-accounts-token');
   };
 
   const isAuthenticated = !!user;

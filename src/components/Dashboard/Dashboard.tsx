@@ -1,6 +1,7 @@
 import React from 'react';
 import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import {
   Users,
   Package,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { 
     contacts, 
     products, 
@@ -251,19 +253,31 @@ const Dashboard: React.FC = () => {
             Quick Actions
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate('/masters/contacts?open=1')}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Users className="h-8 w-8 text-blue-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Add Contact</span>
             </button>
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate('/masters/products?open=1')}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <Package className="h-8 w-8 text-green-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Add Product</span>
             </button>
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate('/transactions/purchase-orders?open=1')}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <ShoppingCart className="h-8 w-8 text-yellow-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Create PO</span>
             </button>
-            <button className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+            <button
+              onClick={() => navigate('/transactions/sales-orders?open=1')}
+              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
               <TrendingUp className="h-8 w-8 text-purple-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Create SO</span>
             </button>

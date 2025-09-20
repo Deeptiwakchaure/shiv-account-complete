@@ -46,6 +46,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         { name: 'Vendor Bills', href: '/transactions/vendor-bills', icon: FileText },
         { name: 'Sales Orders', href: '/transactions/sales-orders', icon: TrendingUp },
         { name: 'Customer Invoices', href: '/transactions/customer-invoices', icon: Receipt },
+        { name: 'Payments', href: '/transactions/payments', icon: CreditCard },
       ]
     },
     {

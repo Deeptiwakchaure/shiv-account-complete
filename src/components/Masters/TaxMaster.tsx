@@ -3,9 +3,13 @@ import { useData } from '../../context/DataContext';
 import { Tax } from '../../types';
 import { Plus, Edit, Trash2, Search, Receipt } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useEffect } from 'react';
+import { getTaxesApi, createTaxApi, updateTaxApi, deleteTaxApi } from '../../lib/api';
 
 const TaxMaster: React.FC = () => {
-  const { taxes, addTax, updateTax, deleteTax } = useData();
+  const { taxes: ctxTaxes, addTax, updateTax, deleteTax } = useData();
+  const [loading, setLoading] = useState(false);
+  const [taxes, setTaxes] = useState<Tax[]>(ctxTaxes);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTax, setEditingTax] = useState<Tax | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +27,37 @@ const TaxMaster: React.FC = () => {
     const matchesFilter = filterApplicable === 'All' || tax.applicableOn === filterApplicable || tax.applicableOn === 'Both';
     return matchesSearch && matchesFilter;
   });
+
+  // Load taxes from backend on mount
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const resp = await getTaxesApi({ limit: 100 });
+        if (resp?.data) {
+          // Normalize to Tax type shape used by UI
+          const mapped = resp.data.map((t: any) => ({
+            id: t._id,
+            name: t.name,
+            rate: t.rate,
+            computationMethod: 'Percentage',
+            applicableOn: t.applicableOn || 'Both',
+            createdAt: new Date(t.createdAt),
+            updatedAt: new Date(t.updatedAt)
+          })) as Tax[];
+          setTaxes(mapped);
+        }
+      } catch (err: any) {
+        // Fallback to context data if API fails
+        setTaxes(ctxTaxes);
+        toast.error(err?.message || 'Failed to load taxes from server. Using local data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleOpenModal = (tax?: Tax) => {
     if (tax) {
@@ -56,24 +91,75 @@ const TaxMaster: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingTax) {
-      updateTax(editingTax.id, formData);
-      toast.success('Tax updated successfully!');
-    } else {
-      addTax(formData);
-      toast.success('Tax added successfully!');
+    try {
+      setLoading(true);
+      if (editingTax) {
+        // Try backend update
+        try {
+          await updateTaxApi(editingTax.id, {
+            name: formData.name,
+            rate: formData.rate,
+            type: 'GST',
+            applicableOn: formData.applicableOn,
+          });
+          toast.success('Tax updated successfully!');
+        } catch {
+          // Fallback to local
+          updateTax(editingTax.id, formData);
+          toast.success('Tax updated locally!');
+        }
+      } else {
+        try {
+          const resp = await createTaxApi({
+            name: formData.name,
+            rate: formData.rate,
+            type: 'GST',
+            applicableOn: formData.applicableOn,
+          });
+          // Merge into local list for immediate UI update
+          if ((resp as any)?.data) {
+            const t: any = (resp as any).data;
+            setTaxes(prev => [
+              ...prev,
+              {
+                id: t._id,
+                name: t.name,
+                rate: t.rate,
+                computationMethod: 'Percentage',
+                applicableOn: t.applicableOn || 'Both',
+                createdAt: new Date(t.createdAt),
+                updatedAt: new Date(t.updatedAt)
+              } as Tax
+            ]);
+          }
+          toast.success('Tax added successfully!');
+        } catch {
+          addTax(formData);
+          setTaxes(prev => [...prev, { ...formData, id: Math.random().toString(36), createdAt: new Date(), updatedAt: new Date() } as Tax]);
+          toast.success('Tax added locally!');
+        }
+      }
+    } finally {
+      setLoading(false);
+      handleCloseModal();
     }
-    
-    handleCloseModal();
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this tax?')) {
-      deleteTax(id);
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this tax?')) return;
+    try {
+      setLoading(true);
+      try {
+        await deleteTaxApi(id);
+      } catch {
+        deleteTax(id);
+      }
+      setTaxes(prev => prev.filter(t => t.id !== id));
       toast.success('Tax deleted successfully!');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -141,7 +227,7 @@ const TaxMaster: React.FC = () => {
               </tr>
             </thead>
             <tbody className="table-body">
-              {filteredTaxes.map((tax) => (
+              {(loading ? [] : filteredTaxes).map((tax) => (
                 <tr key={tax.id} className="table-row">
                   <td className="table-cell">
                     <div className="flex items-center">
@@ -192,6 +278,19 @@ const TaxMaster: React.FC = () => {
                   </td>
                 </tr>
               ))}
+              {loading && (
+                <tr>
+                  <td className="table-cell text-center py-8" colSpan={5}>
+                    <div className="inline-flex items-center gap-2 text-gray-600">
+                      <svg className="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                      </svg>
+                      Loading taxes...
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

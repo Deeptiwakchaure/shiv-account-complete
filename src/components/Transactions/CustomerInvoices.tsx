@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useData } from '../../context/DataContext';
-import { Receipt, Plus, Search, Edit, DollarSign } from 'lucide-react';
+import { FileText, Plus, Search, Edit, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getInvoicesApi, createInvoiceApi } from '../../lib/api';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -9,13 +9,14 @@ const CustomerInvoices: React.FC = () => {
   const { products, contacts } = useData();
   const location = useLocation();
   const navigate = useNavigate();
+
   const [loading, setLoading] = useState(false);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'All' | 'Draft' | 'Sent' | 'Paid' | 'Cancelled'>('All');
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Draft' | 'Sent' | 'Paid' | 'Overdue' | 'Cancelled'>('All');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingInv, setEditingInv] = useState<any | null>(null);
+  const [editingInvoice, setEditingInvoice] = useState<any | null>(null);
   const [form, setForm] = useState({
     customerId: '',
     invoiceDate: new Date().toISOString().split('T')[0],
@@ -70,15 +71,15 @@ const CustomerInvoices: React.FC = () => {
     return { subTotal: sub, tax, grand: sub + tax };
   }, [form.items]);
 
-  const handleOpenModal = (inv?: any) => {
-    if (inv) {
-      setEditingInv(inv);
+  const handleOpenModal = (invoice?: any) => {
+    if (invoice) {
+      setEditingInvoice(invoice);
       setForm({
-        customerId: (inv.customer && inv.customer._id) || '',
-        invoiceDate: inv.invoiceDate ? new Date(inv.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        dueDate: inv.dueDate ? new Date(inv.dueDate).toISOString().split('T')[0] : '',
-        notes: inv.notes || '',
-        items: (inv.items || []).map((row: any) => ({
+        customerId: (invoice.customer && invoice.customer._id) || '',
+        invoiceDate: invoice.invoiceDate ? new Date(invoice.invoiceDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
+        notes: invoice.notes || '',
+        items: (invoice.items || []).map((row: any) => ({
           productId: row.product?._id || '',
           quantity: row.quantity,
           unitPrice: row.unitPrice,
@@ -86,7 +87,7 @@ const CustomerInvoices: React.FC = () => {
         }))
       });
     } else {
-      setEditingInv(null);
+      setEditingInvoice(null);
       setForm({ customerId: '', invoiceDate: new Date().toISOString().split('T')[0], dueDate: '', notes: '', items: [] });
     }
     setIsModalOpen(true);
@@ -94,7 +95,7 @@ const CustomerInvoices: React.FC = () => {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setEditingInv(null);
+    setEditingInvoice(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -129,6 +130,7 @@ const CustomerInvoices: React.FC = () => {
       case 'Draft': return 'bg-gray-100 text-gray-800';
       case 'Sent': return 'bg-blue-100 text-blue-800';
       case 'Paid': return 'bg-green-100 text-green-800';
+      case 'Overdue': return 'bg-red-100 text-red-800';
       case 'Cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -140,7 +142,7 @@ const CustomerInvoices: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Customer Invoices</h1>
-          <p className="mt-1 text-sm text-gray-500">Manage invoices and record payments</p>
+          <p className="mt-1 text-sm text-gray-500">Manage customer invoices and payments</p>
         </div>
         <button onClick={() => handleOpenModal()} className="btn btn-primary btn-md">
           <Plus className="h-4 w-4 mr-2" /> Create Invoice
@@ -157,12 +159,13 @@ const CustomerInvoices: React.FC = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Receipt className="h-4 w-4 text-gray-400" />
+            <FileText className="h-4 w-4 text-gray-400" />
             <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="input">
               <option value="All">All Status</option>
               <option value="Draft">Draft</option>
               <option value="Sent">Sent</option>
               <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
@@ -219,7 +222,7 @@ const CustomerInvoices: React.FC = () => {
                 <tr>
                   <td className="table-cell text-center py-12" colSpan={7}>
                     <div className="text-gray-500 flex flex-col items-center gap-2">
-                      <Receipt className="h-8 w-8" />
+                      <FileText className="h-8 w-8" />
                       <div className="text-sm">No invoices found. Click "Create Invoice" to add one.</div>
                     </div>
                   </td>
@@ -235,7 +238,7 @@ const CustomerInvoices: React.FC = () => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-10 mx-auto p-5 border w-full max-w-4xl shadow-lg rounded-md bg-white">
             <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">{editingInv ? 'Edit Invoice' : 'Create Invoice'}</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">{editingInvoice ? 'Edit Invoice' : 'Create Invoice'}</h3>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -308,7 +311,7 @@ const CustomerInvoices: React.FC = () => {
 
                 <div className="flex justify-end gap-3 pt-4">
                   <button type="button" className="btn btn-secondary btn-md" onClick={handleCloseModal}>Cancel</button>
-                  <button type="submit" className="btn btn-primary btn-md">{editingInv ? 'Update' : 'Create'} Invoice</button>
+                  <button type="submit" className="btn btn-primary btn-md">{editingInvoice ? 'Update' : 'Create'} Invoice</button>
                 </div>
               </form>
             </div>

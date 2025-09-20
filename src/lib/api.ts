@@ -232,23 +232,59 @@ export const getPOStatsApi = async () => {
 };
 
 // Payments
-export const getPaymentsApi = async (params?: { page?: number; limit?: number; search?: string; contact?: string; mode?: 'Cash' | 'Bank'; startDate?: string; endDate?: string }) => {
+export const getPaymentsApi = async (params?: { page?: number; limit?: number; search?: string; contact?: string; type?: 'Received' | 'Paid'; paymentMethod?: string; startDate?: string; endDate?: string }) => {
   const query = new URLSearchParams();
   if (params?.page) query.set('page', String(params.page));
   if (params?.limit) query.set('limit', String(params.limit));
   if (params?.search) query.set('search', params.search);
   if (params?.contact) query.set('contact', params.contact);
-  if (params?.mode) query.set('mode', params.mode);
+  if (params?.type) {
+    // Convert frontend type to backend type
+    const backendType = params.type === 'Received' ? 'Receipt' : 'Payment';
+    query.set('type', backendType);
+  }
+  if (params?.paymentMethod) query.set('paymentMethod', params.paymentMethod);
   if (params?.startDate) query.set('startDate', params.startDate);
   if (params?.endDate) query.set('endDate', params.endDate);
   const path = `/payments${query.toString() ? `?${query.toString()}` : ''}`;
-  return request<{ success: boolean; data: { payments: any[]; pagination: any } }>(path);
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
 };
 
 export const createPaymentApi = async (payload: any) => {
-  return request<{ success: boolean; data: { payment: any } }>(`/payments`, {
+  // Get document details first to get the document number
+  let documentNumber = '';
+  if (payload.document) {
+    try {
+      if (payload.type === 'Received') {
+        const invoiceResp = await request<{ success: boolean; data: any }>(`/customer-invoices/${payload.document}`);
+        documentNumber = invoiceResp.data.invoiceNumber || `INV-${payload.document.slice(-6)}`;
+      } else {
+        const billResp = await request<{ success: boolean; data: any }>(`/vendor-bills/${payload.document}`);
+        documentNumber = billResp.data.billNumber || `BILL-${payload.document.slice(-6)}`;
+      }
+    } catch (error) {
+      // Fallback to generated number if API call fails
+      documentNumber = `${payload.type === 'Received' ? 'INV' : 'BILL'}-${payload.document.slice(-6)}`;
+    }
+  }
+
+  // Transform frontend payload to backend format
+  const backendPayload = {
+    ...payload,
+    type: payload.type === 'Received' ? 'Receipt' : 'Payment',
+    // If document is provided, create linkedDocuments array
+    linkedDocuments: payload.document ? [{
+      documentType: payload.type === 'Received' ? 'Invoice' : 'Expense',
+      documentId: payload.document,
+      documentNumber: documentNumber,
+      allocatedAmount: payload.amount
+    }] : []
+  };
+  delete backendPayload.document; // Remove document field as it's now in linkedDocuments
+  
+  return request<{ success: boolean; data: any }>(`/payments`, {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify(backendPayload),
   });
 };
 

@@ -10,6 +10,22 @@ const { authenticateToken, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Transform payment data for frontend compatibility
+const transformPaymentForFrontend = (payment) => {
+  const transformed = {
+    ...payment.toObject(),
+    // Convert backend type to frontend type
+    type: payment.type === 'Receipt' ? 'Received' : 'Paid',
+    // Add document information for frontend
+    documentNumber: payment.linkedDocuments && payment.linkedDocuments.length > 0 
+      ? payment.linkedDocuments[0].documentNumber 
+      : null,
+    // Ensure reference field matches frontend expectation
+    reference: payment.referenceNumber
+  };
+  return transformed;
+};
+
 // Validation middleware
 const validatePayment = [
   body('type').isIn(['Payment', 'Receipt']).withMessage('Type must be Payment or Receipt'),
@@ -71,9 +87,12 @@ router.get('/', authenticateToken, authorize('Admin', 'Accountant'), async (req,
 
     const total = await Payment.countDocuments(filter);
 
+    // Transform payments for frontend compatibility
+    const transformedPayments = payments.map(transformPaymentForFrontend);
+
     res.json({
       success: true,
-      data: payments,
+      data: transformedPayments,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -287,7 +306,7 @@ router.post('/', authenticateToken, authorize('Admin', 'Accountant'), validatePa
     res.status(201).json({
       success: true,
       message: 'Payment created successfully',
-      data: payment
+      data: transformPaymentForFrontend(payment)
     });
   } catch (error) {
     console.error('Error creating payment:', error);

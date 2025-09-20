@@ -1,33 +1,46 @@
 # Shiv Accounts Cloud
 
-A comprehensive cloud-based accounting and inventory management system designed specifically for Shiv Furniture. This application provides complete business management capabilities including master data management, transaction processing, and real-time reporting.
+A comprehensive cloud-based accounting and inventory management system designed specifically for Shiv Furniture. This full-stack application provides complete business management capabilities including master data management, transaction processing, and real-time reporting.
+
+## 🏗️ Architecture
+
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Backend**: Node.js + Express + MongoDB
+- **Authentication**: JWT-based with role-based access control
+- **Database**: MongoDB with Mongoose ODM
+- **API Integration**: GST HSN Code API integration
 
 ## 🚀 Features
 
 ### Authentication & User Management
+
 - **Role-based Access Control**: Admin, Accountant, and Contact user roles
 - **Secure Login System**: Email/password authentication with session management
 - **User Management**: Admin can manage users and assign roles
 
 ### Master Data Management
+
 - **Contact Master**: Manage customers and vendors with complete contact information
 - **Product Master**: Track products and services with pricing, tax, and inventory details
 - **Tax Master**: Configure tax rules and rates for sales and purchases
 - **Chart of Accounts**: Manage ledger accounts (Assets, Liabilities, Income, Expenses, Equity)
 
 ### Transaction Management
+
 - **Purchase Orders**: Create and manage purchase orders from vendors
 - **Vendor Bills**: Convert purchase orders to bills and track payments
 - **Sales Orders**: Manage customer orders and quotations
 - **Customer Invoices**: Generate invoices and track customer payments
 
 ### Real-time Reporting
+
 - **Balance Sheet**: Real-time financial position with assets, liabilities, and equity
 - **Profit & Loss**: Income statement showing revenue, expenses, and net profit/loss
 - **Stock Report**: Inventory levels, stock valuation, and low stock alerts
 - **Partner Ledger**: Detailed transaction history with customers and vendors
 
 ### Dashboard & Analytics
+
 - **Real-time Dashboard**: Key metrics, recent transactions, and quick actions
 - **Financial Summary**: Overview of business performance
 - **Quick Actions**: Fast access to common tasks
@@ -43,35 +56,57 @@ A comprehensive cloud-based accounting and inventory management system designed 
 - **Routing**: React Router DOM
 - **State Management**: React Context API
 
-## 📦 Installation
+## 📦 Quick Start
+
+### Prerequisites
+
+- Node.js (v16 or higher)
+- MongoDB (v4.4 or higher)
+- Git
+
+### Installation
 
 1. **Clone the repository**
+
    ```bash
-   git clone <repository-url>
-   cd shiv-accounts-cloud
+   git clone https://github.com/Deeptiwakchaure/shiv-account.git
+   cd shiv-account
    ```
 
-2. **Install dependencies**
+2. **Backend Setup**
+
    ```bash
+   cd backend
    npm install
+   cp env.example .env
+   # Edit .env with your MongoDB URI and JWT secret
+   npm run dev
    ```
 
-3. **Start the development server**
+3. **Frontend Setup**
+
    ```bash
+   cd ..  # Go back to project root
+   npm install
    npm start
    ```
 
-4. **Open your browser**
-   Navigate to `http://localhost:3000`
+4. **Access the application**
+   - Frontend: `http://localhost:3000`
+   - Backend API: `http://localhost:5000`
+
+For detailed setup instructions, see [SETUP.md](./SETUP.md)
 
 ## 🔐 Demo Credentials
 
 ### Admin User
+
 - **Email**: admin@shivfurniture.com
 - **Password**: admin123
 - **Access**: Full system access
 
 ### Accountant User
+
 - **Email**: accountant@shivfurniture.com
 - **Password**: acc123
 - **Access**: Master data, transactions, and reports
@@ -81,18 +116,21 @@ A comprehensive cloud-based accounting and inventory management system designed 
 ### User Roles
 
 #### Admin (Business Owner)
+
 - Full access to all modules
 - User management
 - System configuration
 - All reports and analytics
 
 #### Accountant
+
 - Master data management
 - Transaction recording
 - Report generation
 - Limited administrative functions
 
 #### Contact (Customer/Vendor)
+
 - View own invoices/bills
 - Make payments
 - Limited portal access
@@ -100,16 +138,19 @@ A comprehensive cloud-based accounting and inventory management system designed 
 ### Business Workflow
 
 #### Purchase Cycle
+
 1. **Create Purchase Order** → Select vendor and products
 2. **Convert to Vendor Bill** → Add invoice details and due dates
 3. **Record Payment** → Track payments via cash or bank
 
 #### Sales Cycle
+
 1. **Create Sales Order** → Select customer and products
 2. **Convert to Invoice** → Generate customer invoice
 3. **Record Payment** → Track customer payments
 
 #### Reporting
+
 - **Real-time Updates**: All reports update automatically
 - **Date Filtering**: Custom date ranges for all reports
 - **Export Capabilities**: PDF and Excel export (planned)
@@ -133,6 +174,7 @@ src/
 ## 🎯 Key Features Implemented
 
 ### ✅ Completed
+
 - [x] Project setup with TypeScript and Tailwind CSS
 - [x] Authentication system with role-based access
 - [x] Master data modules (Contacts, Products, Taxes, Chart of Accounts)
@@ -143,6 +185,7 @@ src/
 - [x] Data validation and form management
 
 ### 🚧 In Progress
+
 - [ ] Complete transaction modules (Vendor Bills, Sales Orders, Customer Invoices)
 - [ ] Payment recording and tracking
 - [ ] Export functionality (PDF/Excel)
@@ -169,6 +212,7 @@ src/
 ## 📱 Responsive Design
 
 The application is fully responsive and works seamlessly across:
+
 - Desktop computers
 - Tablets
 - Mobile devices
@@ -176,6 +220,7 @@ The application is fully responsive and works seamlessly across:
 ## 🚀 Deployment
 
 The application can be deployed to any static hosting service:
+
 - Vercel
 - Netlify
 - AWS S3 + CloudFront

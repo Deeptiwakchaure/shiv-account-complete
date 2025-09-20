@@ -14,16 +14,53 @@ const request = async <T = any>(path: string, options: RequestInit = {}): Promis
   try {
     window.dispatchEvent(new CustomEvent('api:request-start'));
 
-    const res = await fetch(`${API_URL}${path}`, {
-      ...options,
-      headers,
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers,
+      });
+    } catch (networkErr: any) {
+      // Network-level failure (CORS, server down, DNS, etc.)
+      // Log diagnostic info
+      // eslint-disable-next-line no-console
+      console.error('[API] Network error', {
+        url: `${API_URL}${path}`,
+        method: options.method || 'GET',
+        error: networkErr?.message || networkErr,
+      });
+      throw new Error('Network error. Please verify the server is running and CORS is configured.');
+    }
 
-    const data = await res.json().catch(() => ({}));
+    let data: any = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
 
     if (!res.ok) {
-      const message = (data && (data.message || data.error)) || res.statusText;
+      const message = (data && (data.message || data.error)) || res.statusText || 'Request failed';
+      // eslint-disable-next-line no-console
+      console.error('[API] Request failed', {
+        url: `${API_URL}${path}`,
+        method: options.method || 'GET',
+        status: res.status,
+        statusText: res.statusText,
+        response: data,
+      });
       throw new Error(message);
+    }
+
+    // eslint-disable-next-line no-console
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[API] Request success', {
+        url: `${API_URL}${path}`,
+        method: options.method || 'GET',
+        status: res.status,
+        hasToken: !!token,
+        tokenPreview: token ? `${token.substring(0, 20)}...` : 'none'
+      });
     }
 
     return data;
@@ -39,6 +76,17 @@ export const loginApi = async (email: string, password: string) => {
     {
       method: 'POST',
       body: JSON.stringify({ email, password })
+    }
+  );
+  return resp.data;
+};
+
+export const registerApi = async (payload: { name: string; email: string; password: string; role?: string }) => {
+  const resp = await request<{ success: boolean; data: { user: any; token?: string } }>(
+    '/auth/register',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload)
     }
   );
   return resp.data;
@@ -223,4 +271,131 @@ export const getOutstandingByContactApi = async (contactId: string) => {
 
 export const getPaymentStatsApi = async () => {
   return request<{ success: boolean; data: any }>(`/payments/stats/summary`);
+};
+
+// Sales Orders
+export const getSOsApi = async (params?: { page?: number; limit?: number; search?: string; status?: string; customer?: string; startDate?: string; endDate?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.status) query.set('status', params.status);
+  if (params?.customer) query.set('customer', params.customer);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  const path = `/sales-orders${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+export const createSOApi = async (payload: any) => {
+  return request<{ success: boolean; data: any }>(`/sales-orders`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateSOApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/sales-orders/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateSOStatusApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/sales-orders/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteSOApi = async (id: string) => {
+  return request<{ success: boolean; message: string }>(`/sales-orders/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getSOStatsApi = async () => {
+  return request<{ success: boolean; data: any }>(`/sales-orders/stats/summary`);
+};
+
+// Customer Invoices
+export const getInvoicesApi = async (params?: { page?: number; limit?: number; search?: string; status?: string; customer?: string; startDate?: string; endDate?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.status) query.set('status', params.status);
+  if (params?.customer) query.set('customer', params.customer);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  const path = `/customer-invoices${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+export const createInvoiceApi = async (payload: any) => {
+  return request<{ success: boolean; data: any }>(`/customer-invoices`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateInvoiceApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/customer-invoices/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateInvoiceStatusApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/customer-invoices/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteInvoiceApi = async (id: string) => {
+  return request<{ success: boolean; message: string }>(`/customer-invoices/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+// Vendor Bills
+export const getBillsApi = async (params?: { page?: number; limit?: number; search?: string; status?: string; vendor?: string; startDate?: string; endDate?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.status) query.set('status', params.status);
+  if (params?.vendor) query.set('vendor', params.vendor);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  const path = `/vendor-bills${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+export const createBillApi = async (payload: any) => {
+  return request<{ success: boolean; data: any }>(`/vendor-bills`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateBillApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/vendor-bills/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateBillStatusApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/vendor-bills/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteBillApi = async (id: string) => {
+  return request<{ success: boolean; message: string }>(`/vendor-bills/${id}`, {
+    method: 'DELETE',
+  });
 };

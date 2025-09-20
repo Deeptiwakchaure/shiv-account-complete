@@ -35,7 +35,7 @@ const Dashboard: React.FC = () => {
       name: 'Total Contacts',
       value: contacts.length,
       icon: Users,
-      color: 'bg-blue-500',
+      color: 'from-blue-500/90 to-indigo-500/90',
       change: '+12%',
       changeType: 'positive'
     },
@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
       name: 'Total Products',
       value: products.length,
       icon: Package,
-      color: 'bg-green-500',
+      color: 'from-emerald-500/90 to-lime-500/90',
       change: '+5%',
       changeType: 'positive'
     },
@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
       name: 'Purchase Orders',
       value: purchaseOrders.length,
       icon: ShoppingCart,
-      color: 'bg-yellow-500',
+      color: 'from-amber-500/90 to-orange-500/90',
       change: '+8%',
       changeType: 'positive'
     },
@@ -59,7 +59,7 @@ const Dashboard: React.FC = () => {
       name: 'Sales Orders',
       value: salesOrders.length,
       icon: TrendingUp,
-      color: 'bg-purple-500',
+      color: 'from-purple-500/90 to-fuchsia-500/90',
       change: '+15%',
       changeType: 'positive'
     },
@@ -67,7 +67,7 @@ const Dashboard: React.FC = () => {
       name: 'Customer Invoices',
       value: customerInvoices.length,
       icon: FileText,
-      color: 'bg-indigo-500',
+      color: 'from-indigo-500/90 to-sky-500/90',
       change: '+3%',
       changeType: 'positive'
     },
@@ -75,7 +75,7 @@ const Dashboard: React.FC = () => {
       name: 'Vendor Bills',
       value: vendorBills.length,
       icon: Receipt,
-      color: 'bg-red-500',
+      color: 'from-rose-500/90 to-pink-500/90',
       change: '+7%',
       changeType: 'positive'
     }
@@ -110,15 +110,19 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {/* Stats Grid (polished) */}
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
-          <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
+          <div
+            key={stat.name}
+            className="group relative overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5"
+          >
+            <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-gradient-to-br opacity-10 blur-2xl group-hover:opacity-20 transition" />
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className={`p-3 rounded-md ${stat.color}`}>
-                    <stat.icon className="h-6 w-6 text-white" />
+                  <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-sm`}> 
+                    <stat.icon className="h-6 w-6 text-white drop-shadow-sm" />
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
@@ -127,10 +131,10 @@ const Dashboard: React.FC = () => {
                       {stat.name}
                     </dt>
                     <dd className="flex items-baseline">
-                      <div className="text-2xl font-semibold text-gray-900">
+                      <div className="text-2xl font-semibold text-gray-900 tracking-tight">
                         {stat.value}
                       </div>
-                      <div className={`ml-2 flex items-baseline text-sm font-semibold ${
+                      <div className={`ml-2 flex items-baseline text-xs font-semibold ${
                         stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
                       }`}>
                         {stat.change}
@@ -255,31 +259,38 @@ const Dashboard: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
               onClick={() => navigate('/masters/contacts?open=1')}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-300 hover:shadow-sm"
             >
               <Users className="h-8 w-8 text-blue-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Add Contact</span>
             </button>
             <button
               onClick={() => navigate('/masters/products?open=1')}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-300 hover:shadow-sm"
             >
               <Package className="h-8 w-8 text-green-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Add Product</span>
             </button>
             <button
               onClick={() => navigate('/transactions/purchase-orders?open=1')}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-300 hover:shadow-sm"
             >
               <ShoppingCart className="h-8 w-8 text-yellow-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Create PO</span>
             </button>
             <button
               onClick={() => navigate('/transactions/sales-orders?open=1')}
-              className="flex flex-col items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-300 hover:shadow-sm"
             >
               <TrendingUp className="h-8 w-8 text-purple-500 mb-2" />
               <span className="text-sm font-medium text-gray-700">Create SO</span>
+            </button>
+            <button
+              onClick={() => navigate('/transactions/payments?open=1')}
+              className="flex flex-col items-center p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-300 hover:shadow-sm"
+            >
+              <DollarSign className="h-8 w-8 text-emerald-500 mb-2" />
+              <span className="text-sm font-medium text-gray-700">Record Payment</span>
             </button>
           </div>
         </div>

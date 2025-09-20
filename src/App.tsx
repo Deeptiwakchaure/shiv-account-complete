@@ -4,6 +4,8 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import Login from './components/Auth/Login';
+import { Register } from './components/Auth';
+import Welcome from './components/Public/Welcome';
 import Dashboard from './components/Dashboard/Dashboard';
 import Layout from './components/Layout/Layout';
 import ContactMaster from './components/Masters/ContactMaster';
@@ -45,8 +47,11 @@ const AppRoutes: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <Routes>
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<Navigate to="/welcome" replace />} />
+        <Route path="*" element={<Navigate to="/welcome" replace />} />
       </Routes>
     );
   }
@@ -55,6 +60,7 @@ const AppRoutes: React.FC = () => {
     <Layout>
       <Routes>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/welcome" element={<Welcome />} />
         <Route path="/dashboard" element={<Dashboard />} />
         
         {/* Master Data Routes */}
@@ -153,33 +159,34 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-gray-50">
-            <LoadingOverlay visible={loadingCount > 0} />
-            <AppRoutes />
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                },
-                success: {
-                  duration: 3000,
-                  iconTheme: {
-                    primary: '#22c55e',
-                    secondary: '#fff',
+            <div className="App">
+              <AppRoutes />
+              <LoadingOverlay visible={loadingCount > 0} />
+              <Toaster 
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#363636',
+                    color: '#fff',
                   },
-                },
-                error: {
-                  duration: 5000,
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
+                  success: {
+                    iconTheme: {
+                      primary: '#22c55e',
+                      secondary: '#fff',
+                    },
                   },
-                },
-              }}
-            />
+                  error: {
+                    duration: 5000,
+                    iconTheme: {
+                      primary: '#ef4444',
+                      secondary: '#fff',
+                    },
+                  },
+                }}
+              />
           </div>
+        </div>
         </Router>
       </AuthProvider>
     </DataProvider>

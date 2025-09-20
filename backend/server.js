@@ -19,22 +19,29 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS configuration (support multiple allowed origins)
-const allowedOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000')
-  .split(',')
-  .map(o => o.trim());
+// CORS configuration
+const isDev = process.env.NODE_ENV !== 'production';
+if (isDev) {
+  // In development, allow all origins to avoid CORS pain while integrating
+  app.use(cors({ origin: true, credentials: true }));
+} else {
+  // In production, restrict to allowlist
+  const allowedOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || 'http://localhost:3000')
+    .split(',')
+    .map(o => o.trim());
 
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('CORS: Origin not allowed'), false);
-  },
-  credentials: true,
-}));
+  app.use(cors({
+    origin: function(origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, Postman)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('CORS: Origin not allowed'), false);
+    },
+    credentials: true,
+  }));
+}
 
 // Handle preflight for all routes
 app.options('*', cors());

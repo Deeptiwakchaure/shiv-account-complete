@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '../types';
 import { useData } from './DataContext';
-import { loginApi } from '../lib/api';
+import { loginApi, registerApi } from '../lib/api';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -20,7 +20,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Restore session from localStorage (token + user)
     const storedUser = localStorage.getItem('shiv-accounts-user');
-    if (storedUser) {
+    const storedToken = localStorage.getItem('shiv-accounts-token');
+    
+    if (storedUser && storedToken) {
       try {
         const userData = JSON.parse(storedUser);
         setUser(userData);
@@ -28,12 +30,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('shiv-accounts-user');
         localStorage.removeItem('shiv-accounts-token');
       }
+    } else if (storedUser && !storedToken) {
+      // User exists but no token - invalid state, clear everything
+      console.log('[AuthContext] Invalid state: user without token, clearing session');
+      localStorage.removeItem('shiv-accounts-user');
+      localStorage.removeItem('shiv-accounts-token');
+      setUser(null);
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Prefer backend auth
+      // Only use backend auth - no fallback to mock users
       const { user: backendUser, token } = await loginApi(email, password);
       if (token && backendUser) {
         localStorage.setItem('shiv-accounts-token', token);
@@ -43,15 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       return false;
     } catch (err) {
-      // Fallback to mock users only if backend unavailable
-      const foundUser = users.find(u => u.email === email && u.password === password);
-      if (foundUser) {
-        const { password: _pw, ...userWithoutPassword } = foundUser as any;
-        setUser(userWithoutPassword as User);
-        localStorage.setItem('shiv-accounts-user', JSON.stringify(userWithoutPassword));
-        // No token in mock fallback
-        return true;
-      }
+      console.error('[AuthContext] Login failed:', err);
       return false;
     }
   };
@@ -62,12 +62,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('shiv-accounts-token');
   };
 
+  const register = async (userData: { name: string; email: string; password: string; role?: string }): Promise<boolean> => {
+    try {
+      // Register the user
+      await registerApi(userData);
+      
+      // Then login to set auth context with token
+      return await login(userData.email, userData.password);
+    } catch (err) {
+      console.error('[AuthContext] Registration error:', err);
+      return false;
+    }
+  };
+
   const isAuthenticated = !!user;
 
   const value: AuthContextType = {
     user,
     login,
     logout,
+    register,
     isAuthenticated
   };
 

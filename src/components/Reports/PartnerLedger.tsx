@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Users, Download, Calendar, Search } from 'lucide-react';
+import { exportPartnerLedgerToPDF } from '../../utils/exportUtils';
 
 const PartnerLedger: React.FC = () => {
   const { getPartnerLedger, contacts } = useData();
@@ -19,8 +20,15 @@ const PartnerLedger: React.FC = () => {
   );
 
   const handleExport = () => {
-    // Export functionality would be implemented here
-    console.log('Exporting Partner Ledger...');
+    if (!ledger) {
+      alert('Please select a partner first');
+      return;
+    }
+    try {
+      exportPartnerLedgerToPDF(ledger, fromDate, toDate);
+    } catch (error) {
+      console.error('Error exporting Partner Ledger:', error);
+    }
   };
 
   const generateLedger = () => {

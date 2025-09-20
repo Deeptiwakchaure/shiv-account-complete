@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import {
   User,
   Contact,
@@ -21,7 +21,6 @@ import {
 interface DataContextType {
   // Users
   users: User[];
-  currentUser: User | null;
   
   // Master Data
   contacts: Contact[];
@@ -36,9 +35,6 @@ interface DataContextType {
   salesOrders: SalesOrder[];
   customerInvoices: CustomerInvoice[];
   customerPayments: CustomerPayment[];
-  
-  // Ledger
-  ledgerEntries: LedgerEntry[];
   
   // Actions
   addContact: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -189,7 +185,7 @@ const mockAccounts: Account[] = [
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users] = useState<User[]>(mockUsers);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  // currentUser state removed - handled by AuthContext
   const [contacts, setContacts] = useState<Contact[]>(mockContacts);
   const [products, setProducts] = useState<Product[]>(mockProducts);
   const [taxes, setTaxes] = useState<Tax[]>(mockTaxes);
@@ -200,7 +196,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [salesOrders, setSalesOrders] = useState<SalesOrder[]>([]);
   const [customerInvoices, setCustomerInvoices] = useState<CustomerInvoice[]>([]);
   const [customerPayments, setCustomerPayments] = useState<CustomerPayment[]>([]);
-  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
+  // ledgerEntries state will be implemented with reports module
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
@@ -435,7 +431,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value: DataContextType = {
     users,
-    currentUser,
+    // currentUser removed - handled by AuthContext
     contacts,
     products,
     taxes,
@@ -446,7 +442,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     salesOrders,
     customerInvoices,
     customerPayments,
-    ledgerEntries,
+    // ledgerEntries will be implemented with reports module
     addContact,
     updateContact,
     deleteContact,

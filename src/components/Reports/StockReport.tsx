@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Package, Download, Search, AlertTriangle } from 'lucide-react';
+import { exportStockReportToPDF } from '../../utils/exportUtils';
 
 const StockReport: React.FC = () => {
   const { getStockReport, products } = useData();
@@ -18,8 +19,11 @@ const StockReport: React.FC = () => {
   });
 
   const handleExport = () => {
-    // Export functionality would be implemented here
-    console.log('Exporting Stock Report...');
+    try {
+      exportStockReportToPDF(filteredReport);
+    } catch (error) {
+      console.error('Error exporting Stock Report:', error);
+    }
   };
 
   const getStockStatus = (stock: number) => {

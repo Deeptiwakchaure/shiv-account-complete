@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { registerApi, loginApi } from '../../lib/api';
+// registerApi and loginApi are available but not used directly - handled by AuthContext
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 

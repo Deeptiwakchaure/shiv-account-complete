@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useData } from '../../context/DataContext';
-import { PurchaseOrder, Contact, Product } from '../../types';
-import { Plus, Edit, Trash2, Search, ShoppingCart, Eye } from 'lucide-react';
+import { PurchaseOrder } from '../../types';
+import { ShoppingCart, Plus, Search, Edit, FileText, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getPOsApi, createPOApi } from '../../lib/api';
+import { getPOsApi, createPOApi, createBillApi } from '../../lib/api';
 import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const PurchaseOrders: React.FC = () => {
-  const { contacts, products, generateId } = useData();
+  const { contacts, products } = useData();
+  const navigate = useNavigate();
+  const [convertingPOId, setConvertingPOId] = useState<string | null>(null);
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
@@ -192,6 +195,41 @@ const PurchaseOrders: React.FC = () => {
     }
   };
 
+  const handleConvertToBill = async (po: any) => {
+    if (!window.confirm(`Convert Purchase Order ${po.orderNumber || 'PO-' + po._id?.slice(-6)} to Vendor Bill?`)) {
+      return;
+    }
+    
+    try {
+      setConvertingPOId(po._id);
+      const billPayload = {
+        vendor: po.vendor._id || po.vendor,
+        purchaseOrderId: po._id,
+        billDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        notes: `Generated from Purchase Order: ${po.orderNumber || 'PO-' + po._id?.slice(-6)}`,
+        items: po.items.map((item: any) => ({
+          product: item.product._id || item.product,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          taxPercent: item.taxPercent || 0
+        }))
+      };
+      
+      await createBillApi(billPayload);
+      toast.success('Purchase Order converted to Vendor Bill successfully!');
+      
+      // Optionally navigate to bills
+      if (window.confirm('Would you like to view the Vendor Bills page?')) {
+        navigate('/transactions/vendor-bills');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to convert Purchase Order to Bill');
+    } finally {
+      setConvertingPOId(null);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Draft': return 'bg-gray-100 text-gray-800';
@@ -302,13 +340,20 @@ const PurchaseOrders: React.FC = () => {
                     </span>
                   </td>
                   <td className="table-cell">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleOpenModal(po)}
-                        className="text-primary-600 hover:text-primary-900"
-                      >
-                        <Edit className="h-4 w-4" />
+                    <div className="flex items-center gap-3">
+                      <button className="text-primary-600 hover:text-primary-900 inline-flex items-center gap-1" onClick={() => handleOpenModal(po)}>
+                        <Edit className="h-4 w-4" /> Edit
                       </button>
+                      {po.status === 'Received' && (
+                        <button 
+                          className="text-emerald-600 hover:text-emerald-900 inline-flex items-center gap-1"
+                          onClick={() => handleConvertToBill(po)}
+                          disabled={convertingPOId === po._id}
+                        >
+                          <FileText className="h-4 w-4" /> 
+                          {convertingPOId === po._id ? 'Converting...' : 'Convert to Bill'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

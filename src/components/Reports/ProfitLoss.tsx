@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { TrendingUp, Download, Calendar } from 'lucide-react';
+import { exportProfitLossToPDF } from '../../utils/exportUtils';
 
 const ProfitLoss: React.FC = () => {
   const { getProfitLoss } = useData();
@@ -10,8 +11,11 @@ const ProfitLoss: React.FC = () => {
   const profitLoss = getProfitLoss(new Date(fromDate), new Date(toDate));
 
   const handleExport = () => {
-    // Export functionality would be implemented here
-    console.log('Exporting Profit & Loss...');
+    try {
+      exportProfitLossToPDF(profitLoss, fromDate, toDate);
+    } catch (error) {
+      console.error('Error exporting Profit & Loss:', error);
+    }
   };
 
   return (

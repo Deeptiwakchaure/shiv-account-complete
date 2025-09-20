@@ -185,8 +185,8 @@ const App: React.FC = () => {
                   },
                 }}
               />
+            </div>
           </div>
-        </div>
         </Router>
       </AuthProvider>
     </DataProvider>

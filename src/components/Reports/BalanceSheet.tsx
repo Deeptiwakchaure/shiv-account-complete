@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { BarChart3, Download, Calendar } from 'lucide-react';
+import { exportBalanceSheetToPDF } from '../../utils/exportUtils';
 
 const BalanceSheet: React.FC = () => {
   const { getBalanceSheet } = useData();
@@ -9,8 +10,11 @@ const BalanceSheet: React.FC = () => {
   const balanceSheet = getBalanceSheet();
 
   const handleExport = () => {
-    // Export functionality would be implemented here
-    console.log('Exporting Balance Sheet...');
+    try {
+      exportBalanceSheetToPDF(balanceSheet, asOfDate);
+    } catch (error) {
+      console.error('Error exporting Balance Sheet:', error);
+    }
   };
 
   return (

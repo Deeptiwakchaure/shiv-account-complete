@@ -3,14 +3,14 @@ import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
+  TrendingUp,
   Users,
   Package,
   Receipt,
-  TrendingUp,
   DollarSign,
   ShoppingCart,
   FileText,
-  BarChart3
+  Plus
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {

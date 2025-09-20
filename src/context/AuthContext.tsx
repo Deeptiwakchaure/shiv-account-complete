@@ -14,7 +14,6 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { users } = useData();
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {

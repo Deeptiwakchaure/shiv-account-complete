@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useData } from '../../context/DataContext';
-import { TrendingUp, Plus, Search, Edit } from 'lucide-react';
+import { TrendingUp, Plus, Search, Edit, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { getSOsApi, createSOApi } from '../../lib/api';
-import { useLocation } from 'react-router-dom';
+import { getSOsApi, createSOApi, createInvoiceApi } from '../../lib/api';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const SalesOrders: React.FC = () => {
   const { products, contacts } = useData();
+  const navigate = useNavigate();
+  const [convertingSOId, setConvertingSOId] = useState<string | null>(null);
   const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [salesOrders, setSalesOrders] = useState<any[]>([]);
@@ -124,6 +126,41 @@ const SalesOrders: React.FC = () => {
     }
   };
 
+  const handleConvertToInvoice = async (so: any) => {
+    if (!window.confirm(`Convert Sales Order ${so.orderNumber || 'SO-' + so._id?.slice(-6)} to Customer Invoice?`)) {
+      return;
+    }
+    
+    try {
+      setConvertingSOId(so._id);
+      const invoicePayload = {
+        customer: so.customer._id || so.customer,
+        salesOrderId: so._id,
+        invoiceDate: new Date().toISOString().split('T')[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+        notes: `Generated from Sales Order: ${so.orderNumber || 'SO-' + so._id?.slice(-6)}`,
+        items: so.items.map((item: any) => ({
+          product: item.product._id || item.product,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          taxPercent: item.taxPercent || 0
+        }))
+      };
+      
+      await createInvoiceApi(invoicePayload);
+      toast.success('Sales Order converted to Customer Invoice successfully!');
+      
+      // Optionally navigate to invoices
+      if (window.confirm('Would you like to view the Customer Invoices page?')) {
+        navigate('/transactions/customer-invoices');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to convert Sales Order to Invoice');
+    } finally {
+      setConvertingSOId(null);
+    }
+  };
+
   const statusColor = (s: string) => {
     switch (s) {
       case 'Draft': return 'bg-gray-100 text-gray-800';
@@ -194,9 +231,21 @@ const SalesOrders: React.FC = () => {
                   <td className="table-cell text-sm font-semibold text-gray-900">₹{(so.totalAmount || 0).toLocaleString()}</td>
                   <td className="table-cell"><span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColor(so.status)}`}>{so.status}</span></td>
                   <td className="table-cell">
-                    <button className="text-primary-600 hover:text-primary-900 inline-flex items-center gap-1" onClick={() => handleOpenModal(so)}>
-                      <Edit className="h-4 w-4" /> Edit
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button className="text-primary-600 hover:text-primary-900 inline-flex items-center gap-1" onClick={() => handleOpenModal(so)}>
+                        <Edit className="h-4 w-4" /> Edit
+                      </button>
+                      {so.status === 'Confirmed' && (
+                        <button 
+                          className="text-emerald-600 hover:text-emerald-900 inline-flex items-center gap-1"
+                          onClick={() => handleConvertToInvoice(so)}
+                          disabled={convertingSOId === so._id}
+                        >
+                          <FileText className="h-4 w-4" /> 
+                          {convertingSOId === so._id ? 'Converting...' : 'Convert to Invoice'}
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

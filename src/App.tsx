@@ -20,10 +20,12 @@ import BalanceSheet from './components/Reports/BalanceSheet';
 import ProfitLoss from './components/Reports/ProfitLoss';
 import StockReport from './components/Reports/StockReport';
 import PartnerLedger from './components/Reports/PartnerLedger';
-import LoadingOverlay from './components/Common/LoadingOverlay';
+import InventoryManagement from './components/Inventory/InventoryManagement';
 import { useEffect, useState } from 'react';
 import Payments from './components/Transactions/Payments';
+import Expenses from './components/Transactions/Expenses';
 import ContactPortal from './components/Contact/ContactPortal';
+import LoadingOverlay from './components/Common/LoadingOverlay';
 
 const RootRedirect: React.FC = () => {
   const { user } = useAuth();
@@ -119,6 +121,11 @@ const AppRoutes: React.FC = () => {
             <Payments />
           </ProtectedRoute>
         } />
+        <Route path="/transactions/expenses" element={
+          <ProtectedRoute roles={['Admin', 'Accountant']}>
+            <Expenses />
+          </ProtectedRoute>
+        } />
         <Route path="/transactions/vendor-bills" element={
           <ProtectedRoute roles={['Admin', 'Accountant']}>
             <VendorBills />
@@ -156,8 +163,11 @@ const AppRoutes: React.FC = () => {
             <PartnerLedger />
           </ProtectedRoute>
         } />
-        
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/inventory/management" element={
+          <ProtectedRoute roles={['Admin', 'Accountant']}>
+            <InventoryManagement />
+          </ProtectedRoute>
+        } />
       </Routes>
     </Layout>
   );

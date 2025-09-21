@@ -83,7 +83,10 @@ const purchaseOrderSchema = new mongoose.Schema({
   },
   expectedDeliveryDate: {
     type: Date,
-    required: true
+    required: true,
+    default: function() {
+      return new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    }
   },
   items: [purchaseOrderItemSchema],
   subtotal: {
@@ -113,7 +116,8 @@ const purchaseOrderSchema = new mongoose.Schema({
   },
   deliveryAddress: {
     type: String,
-    required: true
+    required: true,
+    default: 'Default delivery address'
   },
   paymentTerms: {
     type: String,

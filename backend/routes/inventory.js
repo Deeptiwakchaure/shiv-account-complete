@@ -119,4 +119,124 @@ router.get('/:productId/transactions', authenticateToken, authorize('Admin', 'Ac
   }
 });
 
+// GET /api/inventory/movements - get all inventory movements
+router.get('/movements', authenticateToken, authorize('Admin', 'Accountant'), async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 50,
+      movementType,
+      referenceType,
+      startDate,
+      endDate,
+      productId
+    } = req.query;
+
+    const filter = {};
+
+    // Build filter based on query parameters
+    if (movementType && movementType !== 'All') {
+      filter.movementType = movementType;
+    }
+    if (referenceType) {
+      filter.referenceType = referenceType;
+    }
+    if (startDate || endDate) {
+      filter.movementDate = {};
+      if (startDate) filter.movementDate.$gte = new Date(startDate);
+      if (endDate) filter.movementDate.$lte = new Date(endDate);
+    }
+    if (productId) {
+      filter.product = productId;
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    // Get inventory items and their transactions
+    const inventories = await Inventory.find()
+      .populate('product', 'name category')
+      .populate('transactions.createdBy', 'name email');
+
+    // Flatten transactions from all inventory items
+    let allMovements = [];
+    inventories.forEach(inv => {
+      if (inv.transactions && inv.transactions.length > 0) {
+        const movements = inv.transactions.map(tx => ({
+          _id: tx._id,
+          product: {
+            _id: inv.product._id,
+            name: inv.product.name,
+            category: inv.product.category
+          },
+          movementType: tx.transactionType === 'Opening' || tx.transactionType === 'Adjustment' ? 'ADJUSTMENT' :
+                       tx.quantity > 0 ? 'IN' : 'OUT',
+          quantity: tx.quantity,
+          unitPrice: tx.unitPrice,
+          totalValue: tx.totalValue,
+          referenceType: tx.transactionType,
+          referenceId: tx._id,
+          referenceNumber: `TXN-${tx._id.toString().slice(-6)}`,
+          movementDate: tx.createdAt,
+          notes: tx.notes,
+          createdBy: tx.createdBy
+        }));
+        allMovements = allMovements.concat(movements);
+      }
+    });
+
+    // Apply filters to movements
+    if (Object.keys(filter).length > 0) {
+      allMovements = allMovements.filter(movement => {
+        let matches = true;
+
+        if (filter.movementType) {
+          matches = matches && movement.movementType === filter.movementType;
+        }
+        if (filter.referenceType) {
+          matches = matches && movement.referenceType === filter.referenceType;
+        }
+        if (filter.movementDate) {
+          const movementDate = new Date(movement.movementDate);
+          if (filter.movementDate.$gte) {
+            matches = matches && movementDate >= filter.movementDate.$gte;
+          }
+          if (filter.movementDate.$lte) {
+            matches = matches && movementDate <= filter.movementDate.$lte;
+          }
+        }
+        if (filter.product) {
+          matches = matches && movement.product._id.toString() === filter.product;
+        }
+
+        return matches;
+      });
+    }
+
+    // Sort by date (newest first)
+    allMovements.sort((a, b) => new Date(b.movementDate) - new Date(a.movementDate));
+
+    // Apply pagination
+    const total = allMovements.length;
+    const paginatedMovements = allMovements.slice(skip, skip + Number(limit));
+
+    res.json({
+      success: true,
+      data: paginatedMovements,
+      pagination: {
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        pages: Math.ceil(total / Number(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching inventory movements:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching inventory movements',
+      error: error.message
+    });
+  }
+});
+
 module.exports = router;

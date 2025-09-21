@@ -1,5 +1,4 @@
 import React from 'react';
-import { useData } from '../../context/DataContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,7 +11,8 @@ import {
   FileText,
   BarChart3,
   AlertTriangle,
-  Target
+  Target,
+
 } from 'lucide-react';
 import {
   XAxis,
@@ -27,27 +27,16 @@ import {
   AreaChart
 } from 'recharts';
 
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { 
-    contacts, 
-    products, 
-    purchaseOrders, 
-    salesOrders, 
-    customerInvoices, 
-    vendorBills,
-    getBalanceSheet,
-    getProfitLoss
-  } = useData();
   const { user } = useAuth();
 
-  const balanceSheet = getBalanceSheet();
-  const profitLoss = getProfitLoss(new Date(2024, 0, 1), new Date());
-
+  // Mock data for now - replace with API calls
   const stats = [
     {
       name: 'Total Contacts',
-      value: contacts.length,
+      value: 25,
       icon: Users,
       color: 'from-blue-500/90 to-indigo-500/90',
       change: '+12%',
@@ -55,7 +44,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Total Products',
-      value: products.length,
+      value: 150,
       icon: Package,
       color: 'from-emerald-500/90 to-lime-500/90',
       change: '+5%',
@@ -63,7 +52,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Purchase Orders',
-      value: purchaseOrders.length,
+      value: 45,
       icon: ShoppingCart,
       color: 'from-amber-500/90 to-orange-500/90',
       change: '+8%',
@@ -71,7 +60,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Sales Orders',
-      value: salesOrders.length,
+      value: 32,
       icon: TrendingUp,
       color: 'from-purple-500/90 to-fuchsia-500/90',
       change: '+15%',
@@ -79,7 +68,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Customer Invoices',
-      value: customerInvoices.length,
+      value: 28,
       icon: FileText,
       color: 'from-indigo-500/90 to-sky-500/90',
       change: '+3%',
@@ -87,7 +76,7 @@ const Dashboard: React.FC = () => {
     },
     {
       name: 'Vendor Bills',
-      value: vendorBills.length,
+      value: 35,
       icon: Receipt,
       color: 'from-rose-500/90 to-pink-500/90',
       change: '+7%',
@@ -120,23 +109,31 @@ const Dashboard: React.FC = () => {
   ];
 
   const recentTransactions = [
-    ...purchaseOrders.slice(-3).map(po => ({
-      id: po.id,
-      type: 'Purchase Order',
-      description: `PO-${po.id.slice(-6)} - ${po.vendor.name}`,
-      amount: po.grandTotal,
-      date: po.orderDate,
-      status: po.status
-    })),
-    ...salesOrders.slice(-3).map(so => ({
-      id: so.id,
+    {
+      id: '1',
       type: 'Sales Order',
-      description: `SO-${so.id.slice(-6)} - ${so.customer.name}`,
-      amount: so.grandTotal,
-      date: so.orderDate,
-      status: so.status
-    }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+      description: 'SO-000123 - Nimesh Pathak',
+      amount: 45000,
+      date: '2024-01-15',
+      status: 'Confirmed'
+    },
+    {
+      id: '2',
+      type: 'Purchase Order',
+      description: 'PO-000089 - Azure Furniture',
+      amount: 32000,
+      date: '2024-01-14',
+      status: 'Received'
+    },
+    {
+      id: '3',
+      type: 'Invoice',
+      description: 'INV-000045 - Nimesh Pathak',
+      amount: 45000,
+      date: '2024-01-13',
+      status: 'Paid'
+    }
+  ];
 
   // Notifications and Alerts
   const alerts = [
@@ -144,6 +141,9 @@ const Dashboard: React.FC = () => {
     { id: 2, type: 'info', message: '5 invoices are due this week', action: 'View Invoices' },
     { id: 3, type: 'success', message: 'Monthly target achieved!', action: 'View Reports' }
   ];
+
+  const formatCurrency = (amount: number) => `₹${amount.toLocaleString()}`;
+  const formatDate = (date: string) => new Date(date).toLocaleDateString();
 
   return (
     <div className="space-y-6">
@@ -155,7 +155,7 @@ const Dashboard: React.FC = () => {
         </p>
       </div>
 
-      {/* Stats Grid (polished) */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {stats.map((stat) => (
           <div
@@ -166,7 +166,7 @@ const Dashboard: React.FC = () => {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-sm`}> 
+                  <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} shadow-sm`}>
                     <stat.icon className="h-6 w-6 text-white drop-shadow-sm" />
                   </div>
                 </div>
@@ -211,7 +211,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="mt-4">
               <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
+                <div
                   className={`h-2 rounded-full ${
                     kpi.value >= kpi.target ? 'bg-green-500' : 'bg-yellow-500'
                   }`}
@@ -289,9 +289,9 @@ const Dashboard: React.FC = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
-                    {categoryData.map((entry, index) => (
+                    {categoryData.map((entry: any, index: any) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -314,28 +314,26 @@ const Dashboard: React.FC = () => {
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-500">Total Assets</span>
                 <span className="text-lg font-semibold text-gray-900">
-                  ₹{balanceSheet.assets.totalAssets.toLocaleString()}
+                  ₹2,50,000
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-500">Total Liabilities</span>
                 <span className="text-lg font-semibold text-gray-900">
-                  ₹{balanceSheet.liabilities.totalLiabilities.toLocaleString()}
+                  ₹1,20,000
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-500">Total Equity</span>
                 <span className="text-lg font-semibold text-gray-900">
-                  ₹{balanceSheet.equity.totalEquity.toLocaleString()}
+                  ₹1,30,000
                 </span>
               </div>
               <hr className="border-gray-200" />
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-500">Net Profit/Loss</span>
-                <span className={`text-lg font-semibold ${
-                  profitLoss.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  ₹{profitLoss.netProfit.toLocaleString()}
+                <span className="text-lg font-semibold text-green-600">
+                  ₹45,000
                 </span>
               </div>
             </div>
@@ -378,12 +376,12 @@ const Dashboard: React.FC = () => {
                                 {transaction.description}
                               </p>
                               <p className="text-xs text-gray-400">
-                                {new Date(transaction.date).toLocaleDateString()}
+                                {formatDate(transaction.date)}
                               </p>
                             </div>
                             <div className="text-right text-sm whitespace-nowrap text-gray-500">
                               <div className="font-medium text-gray-900">
-                                ₹{transaction.amount.toLocaleString()}
+                                {formatCurrency(transaction.amount)}
                               </div>
                               <div className="text-xs text-gray-400">
                                 {transaction.status}

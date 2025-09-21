@@ -15,8 +15,9 @@ const validatePurchaseOrder = [
   body('items.*.product').notEmpty().withMessage('Product is required for each item'),
   body('items.*.quantity').isFloat({ min: 0.01 }).withMessage('Quantity must be greater than 0'),
   body('items.*.unitPrice').isFloat({ min: 0 }).withMessage('Unit price cannot be negative'),
-  body('expectedDeliveryDate').isISO8601().withMessage('Valid expected delivery date is required'),
-  body('deliveryAddress').notEmpty().withMessage('Delivery address is required')
+  body('items.*.taxPercent').optional().isFloat({ min: 0, max: 100 }).withMessage('Tax percentage must be between 0 and 100'),
+  body('expectedDeliveryDate').optional().isISO8601().withMessage('Valid expected delivery date is required'),
+  body('deliveryAddress').optional().notEmpty().withMessage('Delivery address is required')
 ];
 
 // Generate purchase order number
@@ -179,17 +180,17 @@ router.post('/', authenticateToken, authorize('Admin', 'Accountant'), validatePu
       vendor: vendorDoc._id,
       vendorName: vendorDoc.name,
       vendorEmail: vendorDoc.email,
-      vendorAddress: vendorDoc.address,
-      vendorGST: vendorDoc.gstNumber,
-      expectedDeliveryDate,
+      vendorAddress: vendorDoc.address || '',
+      vendorGST: vendorDoc.gstNumber || '',
+      expectedDeliveryDate: expectedDeliveryDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       items: processedItems,
       subtotal,
       taxAmount: totalTaxAmount,
       totalAmount,
-      deliveryAddress,
-      paymentTerms,
-      notes,
-      createdBy: req.user.id
+      deliveryAddress: deliveryAddress || vendorDoc.address || 'Default delivery address',
+      paymentTerms: paymentTerms || 'Net 30',
+      notes: notes || '',
+      createdBy: req.user._id
     });
 
     await purchaseOrder.save();
@@ -375,7 +376,7 @@ router.put('/:id/status', authenticateToken, authorize('Admin', 'Accountant'), a
                 documentId: purchaseOrder._id,
                 documentNumber: purchaseOrder.orderNumber
               },
-              createdBy: req.user.id
+              createdBy: req.user._id
             });
           }
         }
@@ -383,7 +384,7 @@ router.put('/:id/status', authenticateToken, authorize('Admin', 'Accountant'), a
     }
 
     if (status === 'Confirmed') {
-      purchaseOrder.approvedBy = req.user.id;
+      purchaseOrder.approvedBy = req.user._id;
       purchaseOrder.approvedAt = new Date();
     }
 

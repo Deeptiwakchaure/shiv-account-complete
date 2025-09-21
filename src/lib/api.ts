@@ -501,14 +501,35 @@ export const getPartnerLedgerApi = async (params?: { contactId?: string; startDa
   return request<{ success: boolean; data: any }>(path);
 };
 
-// Dashboard Stats
+// Dashboard Stats - Get comprehensive dashboard statistics
 export const getDashboardStatsApi = async () => {
   return request<{ success: boolean; data: any }>(`/reports/dashboard-stats`);
 };
 
+// Dashboard Analytics - Get monthly trends data
+export const getDashboardAnalyticsApi = async (params?: {
+  startDate?: string;
+  endDate?: string;
+  period?: 'monthly' | 'quarterly' | 'yearly'
+}) => {
+  const query = new URLSearchParams();
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  if (params?.period) query.set('period', params.period);
+  const path = `/reports/dashboard-analytics${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any }>(path);
+};
+
+// Dashboard Alerts - Get system alerts and notifications
+export const getDashboardAlertsApi = async () => {
+  return request<{ success: boolean; data: any[] }>(`/reports/dashboard-alerts`);
+};
+
+
+
 // HSN Codes
-export const searchHSNApi = async (query: string) => {
-  return request<{ success: boolean; data: any[] }>(`/hsn/search?q=${encodeURIComponent(query)}`);
+export const searchHSNApi = async (inputText: string) => {
+  return request<{ success: boolean; data: { hsnCodes: any[] } }>(`/hsn/search?inputText=${encodeURIComponent(inputText)}`);
 };
 
 export const validateHSNApi = async (code: string) => {
@@ -526,9 +547,90 @@ export const getInventoryApi = async (params?: { page?: number; limit?: number; 
   return request<{ success: boolean; data: any[]; pagination: any }>(path);
 };
 
-export const updateInventoryApi = async (id: string, payload: any) => {
-  return request<{ success: boolean; data: any }>(`/inventory/${id}`, {
+export const adjustInventoryApi = async (
+  productId: string,
+  payload: { transactionType: 'Adjustment' | 'Opening' | 'Damage' | 'Return'; quantity: number; unitPrice: number; notes?: string }
+) => {
+  return request<{ success: boolean; data: any }>(`/inventory/${productId}/adjust`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const getInventoryMovementsApi = async (params?: {
+  page?: number;
+  limit?: number;
+  movementType?: string;
+  referenceType?: string;
+  startDate?: string;
+  endDate?: string;
+  productId?: string;
+}) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.movementType) query.set('movementType', params.movementType);
+  if (params?.referenceType) query.set('referenceType', params.referenceType);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  if (params?.productId) query.set('productId', params.productId);
+  const path = `/inventory/movements${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+// Expenses
+export const getExpensesApi = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  category?: string;
+  paymentMethod?: string;
+  vendorId?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.status) query.set('status', params.status);
+  if (params?.category) query.set('category', params.category);
+  if (params?.paymentMethod) query.set('paymentMethod', params.paymentMethod);
+  if (params?.vendorId) query.set('vendorId', params.vendorId);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  const path = `/expenses${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+export const createExpenseApi = async (payload: any) => {
+  return request<{ success: boolean; data: any }>(`/expenses`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateExpenseApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/expenses/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),
   });
+};
+
+export const updateExpenseStatusApi = async (id: string, status: string) => {
+  return request<{ success: boolean; data: any }>(`/expenses/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+};
+
+export const deleteExpenseApi = async (id: string) => {
+  return request<{ success: boolean; message: string }>(`/expenses/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getExpenseStatsApi = async () => {
+  return request<{ success: boolean; data: any }>(`/expenses/stats/summary`);
 };

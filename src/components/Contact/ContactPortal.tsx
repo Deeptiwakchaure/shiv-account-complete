@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FileText, Download, Eye, CreditCard } from 'lucide-react';
-import { getInvoicesApi, getBillsApi, getPaymentsApi } from '../../lib/api';
+import { FileText, Download, Eye, CreditCard, Plus } from 'lucide-react';
+import { getInvoicesApi, getBillsApi, getPaymentsApi, createPaymentApi } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 interface Invoice {
@@ -44,6 +44,12 @@ const ContactPortal: React.FC = () => {
   const [bills, setBills] = useState<Bill[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
 
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
+
   useEffect(() => {
     if (user?.contactId) {
       loadData();
@@ -77,18 +83,62 @@ const ContactPortal: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Paid': return 'bg-green-100 text-green-800';
-      case 'Sent': return 'bg-blue-100 text-blue-800';
-      case 'Overdue': return 'bg-red-100 text-red-800';
-      case 'Draft': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const handleMakePayment = (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    setPaymentAmount(invoice.balanceAmount);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSubmit = async () => {
+    if (!selectedInvoice || paymentAmount <= 0) {
+      toast.error('Please enter a valid payment amount');
+      return;
     }
+
+    try {
+      await createPaymentApi({
+        amount: paymentAmount,
+        type: 'Received',
+        paymentMethod: paymentMethod,
+        document: selectedInvoice._id,
+        contactId: user?.contactId
+      });
+
+      toast.success('Payment recorded successfully!');
+      setShowPaymentModal(false);
+      loadData(); // Refresh data
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to record payment');
+    }
+  };
+
+  const handleDownloadInvoice = (invoiceId: string) => {
+    // TODO: Implement PDF download
+    toast('Download functionality coming soon!');
+  };
+
+  const handleViewInvoice = (invoiceId: string) => {
+    // TODO: Implement invoice viewing
+    toast('Invoice viewing functionality coming soon!');
   };
 
   const formatCurrency = (amount: number) => `₹${amount.toLocaleString()}`;
   const formatDate = (date: string) => new Date(date).toLocaleDateString();
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'overdue':
+        return 'bg-red-100 text-red-800';
+      case 'draft':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   const TabButton: React.FC<{ tab: string; icon: React.ReactNode; label: string; count: number }> = ({ tab, icon, label, count }) => (
     <button
@@ -213,12 +263,30 @@ const ContactPortal: React.FC = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div className="flex space-x-2">
-                                  <button className="text-primary-600 hover:text-primary-900">
+                                  <button
+                                    onClick={() => handleViewInvoice(invoice._id)}
+                                    className="text-primary-600 hover:text-primary-900"
+                                    title="View Invoice"
+                                  >
                                     <Eye className="h-4 w-4" />
                                   </button>
-                                  <button className="text-gray-600 hover:text-gray-900">
+                                  <button
+                                    onClick={() => handleDownloadInvoice(invoice._id)}
+                                    className="text-gray-600 hover:text-gray-900"
+                                    title="Download PDF"
+                                  >
                                     <Download className="h-4 w-4" />
                                   </button>
+                                  {invoice.balanceAmount > 0 && (
+                                    <button
+                                      onClick={() => handleMakePayment(invoice)}
+                                      className="text-green-600 hover:text-green-900 flex items-center space-x-1"
+                                      title="Make Payment"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      <span className="text-xs">Pay</span>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -277,12 +345,30 @@ const ContactPortal: React.FC = () => {
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <div className="flex space-x-2">
-                                  <button className="text-primary-600 hover:text-primary-900">
+                                  <button
+                                    onClick={() => handleViewInvoice(bill._id)}
+                                    className="text-primary-600 hover:text-primary-900"
+                                    title="View Bill"
+                                  >
                                     <Eye className="h-4 w-4" />
                                   </button>
-                                  <button className="text-gray-600 hover:text-gray-900">
+                                  <button
+                                    onClick={() => handleDownloadInvoice(bill._id)}
+                                    className="text-gray-600 hover:text-gray-900"
+                                    title="Download PDF"
+                                  >
                                     <Download className="h-4 w-4" />
                                   </button>
+                                  {bill.balanceAmount > 0 && (
+                                    <button
+                                      onClick={() => handleMakePayment(bill as any)}
+                                      className="text-green-600 hover:text-green-900 flex items-center space-x-1"
+                                      title="Make Payment"
+                                    >
+                                      <Plus className="h-4 w-4" />
+                                      <span className="text-xs">Pay</span>
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -352,6 +438,74 @@ const ContactPortal: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && selectedInvoice && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Make Payment</h3>
+              <form onSubmit={(e) => { e.preventDefault(); handlePaymentSubmit(); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Invoice</label>
+                  <div className="mt-1 p-2 bg-gray-50 rounded-md">
+                    <p className="font-medium">{selectedInvoice.invoiceNumber}</p>
+                    <p className="text-sm text-gray-500">
+                      Balance: {formatCurrency(selectedInvoice.balanceAmount)}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Payment Amount</label>
+                  <input
+                    type="number"
+                    min="0.01"
+                    max={selectedInvoice.balanceAmount}
+                    step="0.01"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(parseFloat(e.target.value) || 0)}
+                    className="input mt-1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="input mt-1"
+                  >
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="UPI">UPI</option>
+                    <option value="Card">Card</option>
+                  </select>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentModal(false)}
+                    className="btn btn-secondary btn-md"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-md"
+                    disabled={loading}
+                  >
+                    {loading ? 'Processing...' : 'Make Payment'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

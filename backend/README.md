@@ -1,5 +1,6 @@
 # Shiv Accounts Cloud - Backend API
 
+Demo video link : https://drive.google.com/file/d/1i1wmQKYC-u95qZoGbkRKJ9oDVHpze6R1/view?usp=sharing
 A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and invoicing system.
 
 ## 🚀 Features
@@ -22,21 +23,25 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
 ## 🛠️ Installation
 
 1. **Navigate to backend directory**
+
    ```bash
    cd backend
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Environment Setup**
+
    ```bash
    cp env.example .env
    ```
-   
+
    Edit `.env` file with your configuration:
+
    ```env
    MONGO_URI=mongodb://localhost:27017/shiv-accounts-cloud
    PORT=5000
@@ -46,14 +51,16 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
    ```
 
 4. **Start MongoDB**
+
    - Local MongoDB: `mongod`
    - MongoDB Atlas: Use connection string in `.env`
 
 5. **Run the server**
+
    ```bash
    # Development
    npm run dev
-   
+
    # Production
    npm start
    ```
@@ -61,6 +68,7 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
 ## 📚 API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - User login
 - `GET /api/auth/me` - Get current user
@@ -68,6 +76,7 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
 - `POST /api/auth/logout` - Logout user
 
 ### Contacts
+
 - `GET /api/contacts` - Get all contacts (with pagination & search)
 - `GET /api/contacts/:id` - Get single contact
 - `POST /api/contacts` - Create new contact
@@ -76,6 +85,7 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
 - `GET /api/contacts/type/:type` - Get contacts by type
 
 ### Products
+
 - `GET /api/products` - Get all products (with pagination & search)
 - `GET /api/products/:id` - Get single product
 - `POST /api/products` - Create new product
@@ -84,11 +94,13 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
 - `GET /api/products/stock/low` - Get low stock products
 
 ### HSN Codes
+
 - `GET /api/hsn/search` - Search HSN codes using GST API
 - `GET /api/hsn/validate/:hsnCode` - Validate HSN code format
 - `GET /api/hsn/popular` - Get popular HSN codes
 
 ### Reports (Coming Soon)
+
 - `GET /api/reports/balance-sheet` - Balance sheet report
 - `GET /api/reports/profit-loss` - Profit & Loss report
 - `GET /api/reports/stock` - Stock report
@@ -97,6 +109,7 @@ A comprehensive Node.js backend API for the Shiv Accounts Cloud accounting and i
 ## 🔐 Authentication
 
 All protected routes require a JWT token in the Authorization header:
+
 ```
 Authorization: Bearer <your-jwt-token>
 ```
@@ -104,25 +117,30 @@ Authorization: Bearer <your-jwt-token>
 ## 📊 Database Models
 
 ### User
+
 - User authentication and profile management
 - Role-based access control (Admin, Accountant, Contact)
 
 ### Contact
+
 - Customer and vendor management
 - Contact information and business details
 - Balance tracking
 
 ### Product
+
 - Product and service catalog
 - Inventory management
 - HSN code integration
 
 ### Invoice (Coming Soon)
+
 - Customer invoice management
 - Line items and calculations
 - Payment tracking
 
 ### Expense (Coming Soon)
+
 - Vendor bill management
 - Expense tracking
 - Payment processing
@@ -139,6 +157,7 @@ Authorization: Bearer <your-jwt-token>
 ## 🔧 Development
 
 ### Project Structure
+
 ```
 backend/
 ├── models/          # MongoDB models
@@ -150,6 +169,7 @@ backend/
 ```
 
 ### Available Scripts
+
 - `npm start` - Start production server
 - `npm run dev` - Start development server with nodemon
 - `npm test` - Run tests
@@ -157,18 +177,19 @@ backend/
 
 ## 🌐 Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MONGO_URI` | MongoDB connection string | `mongodb://localhost:27017/shiv-accounts-cloud` |
-| `PORT` | Server port | `5000` |
-| `JWT_SECRET` | JWT signing secret | Required |
-| `JWT_EXPIRE` | JWT expiration time | `7d` |
-| `HSN_API_BASE_URL` | GST HSN API URL | GST API URL |
-| `FRONTEND_URL` | Frontend URL for CORS | `http://localhost:3000` |
+| Variable           | Description               | Default                                         |
+| ------------------ | ------------------------- | ----------------------------------------------- |
+| `MONGO_URI`        | MongoDB connection string | `mongodb://localhost:27017/shiv-accounts-cloud` |
+| `PORT`             | Server port               | `5000`                                          |
+| `JWT_SECRET`       | JWT signing secret        | Required                                        |
+| `JWT_EXPIRE`       | JWT expiration time       | `7d`                                            |
+| `HSN_API_BASE_URL` | GST HSN API URL           | GST API URL                                     |
+| `FRONTEND_URL`     | Frontend URL for CORS     | `http://localhost:3000`                         |
 
 ## 📝 API Response Format
 
 ### Success Response
+
 ```json
 {
   "success": true,
@@ -180,6 +201,7 @@ backend/
 ```
 
 ### Error Response
+
 ```json
 {
   "success": false,
@@ -191,6 +213,7 @@ backend/
 ## 🚀 Deployment
 
 ### Local Development
+
 1. Install MongoDB locally
 2. Clone repository
 3. Install dependencies: `npm install`
@@ -198,6 +221,7 @@ backend/
 5. Start server: `npm run dev`
 
 ### Production Deployment
+
 1. Set up MongoDB Atlas or cloud MongoDB
 2. Configure production environment variables
 3. Install dependencies: `npm install --production`

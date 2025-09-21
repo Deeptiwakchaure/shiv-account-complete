@@ -89,6 +89,7 @@ app.use('/api/vendor-bills', require('./routes/vendorBills'));
 app.use('/api/sales-orders', require('./routes/salesOrders'));
 app.use('/api/customer-invoices', require('./routes/customerInvoices'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/expenses', require('./routes/expenses'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/hsn', require('./routes/hsn'));
 app.use('/api/inventory', require('./routes/inventory'));

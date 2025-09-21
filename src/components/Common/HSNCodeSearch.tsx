@@ -71,7 +71,7 @@ const HSNCodeSearch: React.FC<HSNCodeSearchProps> = ({
     setLoading(true);
     try {
       const response = await searchHSNApi(query);
-      setSuggestions(response.data || []);
+      setSuggestions(response.data.hsnCodes || []);
     } catch (error: any) {
       toast.error(error?.message || 'Failed to search HSN codes');
       setSuggestions([]);

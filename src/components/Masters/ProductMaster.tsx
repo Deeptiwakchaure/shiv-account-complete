@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Product } from '../../types';
-import { Plus, Edit, Trash2, Search, Package } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect } from 'react';
-import { getProductsApi, createProductApi, updateProductApi, deleteProductApi } from '../../lib/api';
+import { getProductsApi, createProductApi, updateProductApi, deleteProductApi, searchHSNApi } from '../../lib/api';
 import { useLocation } from 'react-router-dom';
 
 const ProductMaster: React.FC = () => {
@@ -30,6 +30,12 @@ const ProductMaster: React.FC = () => {
     stock: 0
   });
 
+  // HSN Search States
+  const [isHsnModalOpen, setIsHsnModalOpen] = useState(false);
+  const [hsnSearchTerm, setHsnSearchTerm] = useState('');
+  const [hsnSearchResults, setHsnSearchResults] = useState<any[]>([]);
+  const [hsnLoading, setHsnLoading] = useState(false);
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -37,6 +43,22 @@ const ProductMaster: React.FC = () => {
     const matchesFilter = filterType === 'All' || product.type === filterType;
     return matchesSearch && matchesFilter;
   });
+
+  const getStockStatus = (stock: number) => {
+    if (stock <= 0) return { status: 'Out of Stock', color: 'text-red-600 bg-red-100' };
+    if (stock <= 5) return { status: 'Low Stock', color: 'text-yellow-600 bg-yellow-100' };
+    if (stock <= 10) return { status: 'Medium Stock', color: 'text-orange-600 bg-orange-100' };
+    return { status: 'In Stock', color: 'text-green-600 bg-green-100' };
+  };
+
+  const getStockStatusBadge = (stock: number) => {
+    const { status, color } = getStockStatus(stock);
+    return (
+      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${color}`}>
+        {status}
+      </span>
+    );
+  };
 
   // Load products from backend
   useEffect(() => {
@@ -198,6 +220,49 @@ const ProductMaster: React.FC = () => {
     }
   };
 
+  const handleHsnSearch = async () => {
+    if (!hsnSearchTerm.trim() || hsnSearchTerm.length < 2) {
+      toast.error('Please enter at least 2 characters to search HSN codes');
+      return;
+    }
+
+    setHsnLoading(true);
+    try {
+      const response = await searchHSNApi(hsnSearchTerm.trim());
+      if (response.success && response.data?.hsnCodes) {
+        setHsnSearchResults(response.data.hsnCodes);
+      } else {
+        setHsnSearchResults([]);
+        toast.error('No HSN codes found for the search term');
+      }
+    } catch (error: any) {
+      console.error('HSN search error:', error);
+      toast.error(error?.message || 'Failed to search HSN codes');
+      setHsnSearchResults([]);
+    } finally {
+      setHsnLoading(false);
+    }
+  };
+
+  const handleHsnSelect = (hsn: any) => {
+    const code = hsn.code || hsn.c || '';
+    const description = hsn.description || hsn.n || '';
+    setFormData(prev => ({
+      ...prev,
+      hsnCode: code
+    }));
+    setIsHsnModalOpen(false);
+    setHsnSearchTerm('');
+    setHsnSearchResults([]);
+    toast.success(`HSN Code ${code} selected: ${description}`);
+  };
+
+  const openHsnModal = () => {
+    setIsHsnModalOpen(true);
+    setHsnSearchTerm('');
+    setHsnSearchResults([]);
+  };
+
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
@@ -304,14 +369,11 @@ const ProductMaster: React.FC = () => {
                   <td className="table-cell text-sm text-gray-900">₹{product.salesPrice.toLocaleString()}</td>
                   <td className="table-cell text-sm text-gray-900">₹{product.purchasePrice.toLocaleString()}</td>
                   <td className="table-cell">
-                    <span className={`text-sm font-medium ${
-                      product.stock > 10 ? 'text-green-600' : 
-                      product.stock > 0 ? 'text-yellow-600' : 'text-red-600'
-                    }`}>
-                      {product.stock} units
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900">{product.stock} units</span>
+                      {getStockStatusBadge(product.stock)}
+                    </div>
                   </td>
-                  <td className="table-cell text-sm text-gray-900">{product.hsnCode}</td>
                   <td className="table-cell">
                     <div className="flex items-center space-x-2">
                       <button
@@ -409,13 +471,25 @@ const ProductMaster: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">HSN Code *</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.hsnCode}
-                      onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value })}
-                      className="input mt-1"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        required
+                        value={formData.hsnCode}
+                        onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value })}
+                        className="input mt-1 flex-1"
+                        placeholder="Enter or search HSN code"
+                      />
+                      <button
+                        type="button"
+                        onClick={openHsnModal}
+                        className="btn btn-secondary btn-md mt-1"
+                        title="Search HSN Codes"
+                      >
+                        <Search className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Click search to find HSN codes from GST database</p>
                   </div>
                 </div>
 
@@ -499,6 +573,97 @@ const ProductMaster: React.FC = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* HSN Search Modal */}
+      {isHsnModalOpen && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Search HSN Codes</h3>
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  placeholder="Search by code or description (min 2 characters)..."
+                  value={hsnSearchTerm}
+                  onChange={(e) => setHsnSearchTerm(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleHsnSearch()}
+                  className="input flex-1"
+                />
+                <button
+                  onClick={handleHsnSearch}
+                  disabled={hsnLoading || !hsnSearchTerm.trim() || hsnSearchTerm.length < 2}
+                  className="btn btn-primary btn-md"
+                >
+                  {hsnLoading ? (
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                  ) : (
+                    <Search className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto">
+                {hsnSearchResults.length > 0 ? (
+                  <div className="space-y-2">
+                    {hsnSearchResults.map((hsn, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleHsnSelect(hsn)}
+                        className="p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              {hsn.code || hsn.c}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {hsn.description || hsn.n}
+                            </div>
+                          </div>
+                          <ExternalLink className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : hsnLoading ? (
+                  <div className="text-center py-8">
+                    <svg className="animate-spin h-6 w-6 text-primary-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                    <p className="text-gray-600 mt-2">Searching HSN codes...</p>
+                  </div>
+                ) : hsnSearchTerm.length >= 2 ? (
+                  <div className="text-center py-8">
+                    <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">No HSN codes found</p>
+                    <p className="text-sm text-gray-500">Try a different search term</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Search className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">Enter a search term to find HSN codes</p>
+                    <p className="text-sm text-gray-500">Search by code (e.g., 9401) or description (e.g., furniture)</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsHsnModalOpen(false)}
+                  className="btn btn-secondary btn-md"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

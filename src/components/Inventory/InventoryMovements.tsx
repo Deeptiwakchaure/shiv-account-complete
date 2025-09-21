@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Package, TrendingUp, TrendingDown, Calendar, Filter, Download } from 'lucide-react';
-import { getInventoryApi } from '../../lib/api';
+import { getInventoryMovementsApi, getInventoryApi } from '../../lib/api';
 import toast from 'react-hot-toast';
 
 interface InventoryMovement {
@@ -53,70 +53,45 @@ const InventoryMovements: React.FC = () => {
   const loadInventoryData = async () => {
     setLoading(true);
     try {
-      // In a real implementation, this would call specific inventory movement APIs
-      // For now, we'll simulate the data structure
-      const mockMovements: InventoryMovement[] = [
-        {
-          _id: '1',
-          product: { _id: 'p1', name: 'Office Chair', category: 'Furniture' },
-          movementType: 'IN',
-          quantity: 50,
-          unitPrice: 2500,
-          totalValue: 125000,
-          referenceType: 'PURCHASE',
-          referenceId: 'po1',
-          referenceNumber: 'PO-000001',
-          movementDate: new Date().toISOString(),
-          notes: 'Purchase from Azure Furniture',
-          createdBy: { name: 'Admin User' }
-        },
-        {
-          _id: '2',
-          product: { _id: 'p2', name: 'Wooden Table', category: 'Furniture' },
-          movementType: 'OUT',
-          quantity: 5,
-          unitPrice: 5000,
-          totalValue: 25000,
-          referenceType: 'SALE',
-          referenceId: 'so1',
-          referenceNumber: 'SO-000001',
-          movementDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          createdBy: { name: 'Sales User' }
-        },
-        {
-          _id: '3',
-          product: { _id: 'p3', name: 'Dining Set', category: 'Furniture' },
-          movementType: 'ADJUSTMENT',
-          quantity: -2,
-          unitPrice: 15000,
-          totalValue: -30000,
-          referenceType: 'ADJUSTMENT',
-          referenceId: 'adj1',
-          referenceNumber: 'ADJ-000001',
-          movementDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-          notes: 'Damaged items adjustment',
-          createdBy: { name: 'Warehouse Manager' }
-        }
-      ];
-
-      // Filter movements based on criteria
-      const filtered = mockMovements.filter(movement => {
-        const matchesType = filterType === 'All' || movement.movementType === filterType;
-        const movementDate = new Date(movement.movementDate);
-        const startDate = new Date(dateRange.startDate);
-        const endDate = new Date(dateRange.endDate);
-        const matchesDate = movementDate >= startDate && movementDate <= endDate;
-        return matchesType && matchesDate;
+      // Get inventory movements
+      const movementsResponse = await getInventoryMovementsApi({
+        page: 1,
+        limit: 100,
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        movementType: filterType === 'All' ? undefined : filterType
       });
 
-      setMovements(filtered);
+      let movements = [];
+      if (movementsResponse.success && movementsResponse.data) {
+        movements = movementsResponse.data;
+      }
 
-      // Calculate stats
+      // Get inventory stats
+      const inventoryResponse = await getInventoryApi({ lowStock: true });
+      let totalProducts = 0;
+      let totalValue = 0;
+      let lowStockItems = 0;
+
+      if (inventoryResponse.success && inventoryResponse.data) {
+        const inventoryData = inventoryResponse.data;
+        totalProducts = inventoryData.length;
+
+        // Calculate total value and low stock items
+        inventoryData.forEach((item: any) => {
+          totalValue += (item.quantity * item.unitPrice) || 0;
+          if (item.quantity <= item.minStock || 0) {
+            lowStockItems++;
+          }
+        });
+      }
+
+      setMovements(movements);
       setStats({
-        totalProducts: 25,
-        totalValue: 450000,
-        lowStockItems: 3,
-        recentMovements: filtered.length
+        totalProducts,
+        totalValue,
+        lowStockItems,
+        recentMovements: movements.length
       });
 
     } catch (error: any) {

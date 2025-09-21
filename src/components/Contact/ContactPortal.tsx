@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { FileText, DollarSign, Calendar, Download, Eye, CreditCard } from 'lucide-react';
+import { FileText, Download, Eye, CreditCard } from 'lucide-react';
 import { getInvoicesApi, getBillsApi, getPaymentsApi } from '../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -48,6 +48,7 @@ const ContactPortal: React.FC = () => {
     if (user?.contactId) {
       loadData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.contactId, activeTab]);
 
   const loadData = async () => {

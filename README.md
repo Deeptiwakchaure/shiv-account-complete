@@ -1,5 +1,5 @@
 # Shiv Accounts Cloud
-
+Demo video link : https://drive.google.com/file/d/1i1wmQKYC-u95qZoGbkRKJ9oDVHpze6R1/view?usp=sharing  
 A comprehensive cloud-based accounting and inventory management system designed specifically for Shiv Furniture. This full-stack application provides complete business management capabilities including master data management, transaction processing, and real-time reporting.
 
 ## 🏗️ Architecture

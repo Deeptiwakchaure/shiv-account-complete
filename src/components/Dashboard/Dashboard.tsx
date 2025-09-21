@@ -10,15 +10,11 @@ import {
   DollarSign,
   ShoppingCart,
   FileText,
-  Plus,
   BarChart3,
   AlertTriangle,
-  Calendar,
   Target
 } from 'lucide-react';
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -27,8 +23,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   Area,
   AreaChart
 } from 'recharts';

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useData } from '../../context/DataContext';
 import { Contact } from '../../types';
-import { Plus, Edit, Trash2, Search, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, User, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useEffect } from 'react';
-import { getContactsApi, createContactApi, updateContactApi, deleteContactApi } from '../../lib/api';
+import { getContactsApi, createContactApi, updateContactApi, deleteContactApi, registerApi } from '../../lib/api';
+import FileUpload from '../Common/FileUpload';
 import { useLocation } from 'react-router-dom';
 
 const ContactMaster: React.FC = () => {
@@ -27,8 +28,11 @@ const ContactMaster: React.FC = () => {
     state: '',
     pincode: '',
     profileImage: '',
-    balance: 0
+    balance: 0,
+    createUser: false,
+    userPassword: ''
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const filteredContacts = contacts.filter(contact => {
     const matchesSearch = contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

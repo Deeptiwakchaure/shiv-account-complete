@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import GlobalSearch from '../Common/GlobalSearch';
 import NotificationSystem from '../Common/NotificationSystem';
 import {
@@ -28,41 +28,46 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
 
   const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['Admin', 'Accountant', 'Contact'] },
-    {
-      name: 'Master Data',
-      icon: Settings,
-      roles: ['Admin', 'Accountant'],
-      children: [
-        { name: 'Contacts', href: '/masters/contacts', icon: Users },
-        { name: 'Products', href: '/masters/products', icon: Package },
-        { name: 'Taxes', href: '/masters/taxes', icon: Receipt },
-        { name: 'Chart of Accounts', href: '/masters/chart-of-accounts', icon: FileText },
-      ]
-    },
-    {
-      name: 'Transactions',
-      icon: DollarSign,
-      roles: ['Admin', 'Accountant'],
-      children: [
-        { name: 'Purchase Orders', href: '/transactions/purchase-orders', icon: ShoppingCart },
-        { name: 'Vendor Bills', href: '/transactions/vendor-bills', icon: FileText },
-        { name: 'Sales Orders', href: '/transactions/sales-orders', icon: Calculator },
-        { name: 'Customer Invoices', href: '/transactions/customer-invoices', icon: Receipt },
-        { name: 'Payments', href: '/transactions/payments', icon: DollarSign },
-      ]
-    },
-    {
-      name: 'Reports',
-      icon: BarChart3,
-      roles: ['Admin', 'Accountant'],
-      children: [
-        { name: 'Balance Sheet', href: '/reports/balance-sheet', icon: BarChart3 },
-        { name: 'Profit & Loss', href: '/reports/profit-loss', icon: Calculator },
-        { name: 'Stock Report', href: '/reports/stock', icon: Package },
-        { name: 'Partner Ledger', href: '/reports/partner-ledger', icon: Users },
-      ]
-    },
+    // Contact users get a simplified navigation
+    ...(user?.role === 'Contact' ? [
+      { name: 'My Portal', href: '/contact-portal', icon: Home, roles: ['Contact'] },
+    ] : [
+      { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['Admin', 'Accountant'] },
+      {
+        name: 'Master Data',
+        icon: Settings,
+        roles: ['Admin', 'Accountant'],
+        children: [
+          { name: 'Contacts', href: '/masters/contacts', icon: Users },
+          { name: 'Products', href: '/masters/products', icon: Package },
+          { name: 'Taxes', href: '/masters/taxes', icon: Receipt },
+          { name: 'Chart of Accounts', href: '/masters/chart-of-accounts', icon: FileText },
+        ]
+      },
+      {
+        name: 'Transactions',
+        icon: DollarSign,
+        roles: ['Admin', 'Accountant'],
+        children: [
+          { name: 'Purchase Orders', href: '/transactions/purchase-orders', icon: ShoppingCart },
+          { name: 'Vendor Bills', href: '/transactions/vendor-bills', icon: FileText },
+          { name: 'Sales Orders', href: '/transactions/sales-orders', icon: Calculator },
+          { name: 'Customer Invoices', href: '/transactions/customer-invoices', icon: Receipt },
+          { name: 'Payments', href: '/transactions/payments', icon: DollarSign },
+        ]
+      },
+      {
+        name: 'Reports',
+        icon: BarChart3,
+        roles: ['Admin', 'Accountant'],
+        children: [
+          { name: 'Balance Sheet', href: '/reports/balance-sheet', icon: BarChart3 },
+          { name: 'Profit & Loss', href: '/reports/profit-loss', icon: Calculator },
+          { name: 'Stock Report', href: '/reports/stock', icon: Package },
+          { name: 'Partner Ledger', href: '/reports/partner-ledger', icon: Users },
+        ]
+      },
+    ])
   ];
 
   const filteredNavigation = navigation.filter(item => 

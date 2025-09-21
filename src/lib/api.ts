@@ -435,3 +435,100 @@ export const deleteBillApi = async (id: string) => {
     method: 'DELETE',
   });
 };
+
+// Chart of Accounts
+export const getAccountsApi = async (params?: { page?: number; limit?: number; search?: string; type?: string; category?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.type) query.set('type', params.type);
+  if (params?.category) query.set('category', params.category);
+  const path = `/accounts${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+export const createAccountApi = async (payload: any) => {
+  return request<{ success: boolean; data: any }>(`/accounts`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const updateAccountApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/accounts/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};
+
+export const deleteAccountApi = async (id: string) => {
+  return request<{ success: boolean; message: string }>(`/accounts/${id}`, {
+    method: 'DELETE',
+  });
+};
+
+// Reports
+export const getBalanceSheetApi = async (params?: { asOfDate?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.asOfDate) query.set('asOfDate', params.asOfDate);
+  const path = `/reports/balance-sheet${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any }>(path);
+};
+
+export const getProfitLossApi = async (params?: { startDate?: string; endDate?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  const path = `/reports/profit-loss${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any }>(path);
+};
+
+export const getStockReportApi = async (params?: { asOfDate?: string; category?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.asOfDate) query.set('asOfDate', params.asOfDate);
+  if (params?.category) query.set('category', params.category);
+  const path = `/reports/stock${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any }>(path);
+};
+
+export const getPartnerLedgerApi = async (params?: { contactId?: string; startDate?: string; endDate?: string }) => {
+  const query = new URLSearchParams();
+  if (params?.contactId) query.set('contactId', params.contactId);
+  if (params?.startDate) query.set('startDate', params.startDate);
+  if (params?.endDate) query.set('endDate', params.endDate);
+  const path = `/reports/partner-ledger${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any }>(path);
+};
+
+// Dashboard Stats
+export const getDashboardStatsApi = async () => {
+  return request<{ success: boolean; data: any }>(`/reports/dashboard-stats`);
+};
+
+// HSN Codes
+export const searchHSNApi = async (query: string) => {
+  return request<{ success: boolean; data: any[] }>(`/hsn/search?q=${encodeURIComponent(query)}`);
+};
+
+export const validateHSNApi = async (code: string) => {
+  return request<{ success: boolean; data: any }>(`/hsn/validate/${code}`);
+};
+
+// Inventory
+export const getInventoryApi = async (params?: { page?: number; limit?: number; search?: string; lowStock?: boolean }) => {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.lowStock) query.set('lowStock', 'true');
+  const path = `/inventory${query.toString() ? `?${query.toString()}` : ''}`;
+  return request<{ success: boolean; data: any[]; pagination: any }>(path);
+};
+
+export const updateInventoryApi = async (id: string, payload: any) => {
+  return request<{ success: boolean; data: any }>(`/inventory/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+};

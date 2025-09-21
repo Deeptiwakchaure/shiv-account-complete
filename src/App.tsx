@@ -23,6 +23,17 @@ import PartnerLedger from './components/Reports/PartnerLedger';
 import LoadingOverlay from './components/Common/LoadingOverlay';
 import { useEffect, useState } from 'react';
 import Payments from './components/Transactions/Payments';
+import ContactPortal from './components/Contact/ContactPortal';
+
+const RootRedirect: React.FC = () => {
+  const { user } = useAuth();
+  
+  if (user?.role === 'Contact') {
+    return <Navigate to="/contact-portal" replace />;
+  }
+  
+  return <Navigate to="/dashboard" replace />;
+};
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> = ({ 
   children, 
@@ -35,7 +46,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode; roles?: string[] }> 
   }
 
   if (roles && user && !roles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+    // Contact users should go to their portal, others to dashboard
+    return <Navigate to={user.role === 'Contact' ? '/contact-portal' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;
@@ -59,9 +71,20 @@ const AppRoutes: React.FC = () => {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route path="/welcome" element={<Welcome />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute roles={['Admin', 'Accountant']}>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        
+        {/* Contact Portal Route */}
+        <Route path="/contact-portal" element={
+          <ProtectedRoute roles={['Contact']}>
+            <ContactPortal />
+          </ProtectedRoute>
+        } />
         
         {/* Master Data Routes */}
         <Route path="/masters/contacts" element={
